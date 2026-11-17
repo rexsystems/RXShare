@@ -4,7 +4,7 @@ import { Icon } from "~/components/Icon";
 import { getAvatarUrl } from "~/lib/utils-format";
 import { cn } from "~/lib/utils";
 
-const DEFAULT_LOGO = "https://cdn.rxss.click/rexsystems/logo-transparent.svg";
+const DEFAULT_LOGO = "https://cdn.694206767.xyz/rexsystems/logo-transparent.svg";
 
 interface NavItem { label: string; path: string; icon: string; adminOnly?: boolean; }
 const mainNav: NavItem[] = [

@@ -11,7 +11,7 @@
   --color-popover: var(--card);
   --color-popover-foreground: var(--card-fg);
   --color-primary: var(--primary);
-  --color-primary-foreground: #ffffff;
+  --color-primary-foreground: #0a0a0a;
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--fg);
   --color-muted: var(--muted);
@@ -31,9 +31,9 @@
 }
 
 :root {
-  --bg: #050505;
-  --fg: #e5e7eb;
-  --card: #141414;
+  --bg: #0b0b0c;
+  --fg: #ececee;
+  --card: #141415;
   --card-fg: #e5e7eb;
   --primary: #f97316;
   --primary-hover: #ea580c;
@@ -42,8 +42,9 @@
   --primary-b: 22;
   --secondary: rgba(255,255,255,0.05);
   --muted: rgba(255,255,255,0.05);
-  --muted-fg: #6b7280;
-  --border-color: rgba(255,255,255,0.08);
+  --muted-fg: #a1a1aa;
+  --border-color: rgba(255,255,255,0.10);
+  --control-border: #71717a;
   --radius: 0.75rem;
 }
 
@@ -52,14 +53,23 @@
     border-color: var(--border-color);
   }
   body {
-    background-color: #050505;
-    background-image:
-      radial-gradient(circle at 15% 50%, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.08), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.05), transparent 25%);
+    background-color: var(--bg);
     color: var(--fg);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  /* Every enabled control shows it is clickable; disabled ones say so */
+  a[href], button, summary, select, label[for], [role="button"], [role="tab"], [role="switch"],
+  input[type="checkbox"], input[type="radio"] {
+    cursor: pointer;
+  }
+  button:disabled, select:disabled, input:disabled, [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
   html {
     color-scheme: dark;
@@ -153,7 +163,7 @@
 /* Selection — use primary */
 ::selection {
   background: var(--primary);
-  color: white;
+  color: #0a0a0a;
 }
 
 /* Shimmer animation */

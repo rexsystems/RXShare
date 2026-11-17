@@ -4,7 +4,7 @@ import { useToast } from "~/components/ui/use-toast";
 import { getCsrfToken } from "~/lib/csrf";
 import { Captcha, useCaptcha } from "~/components/Captcha";
 
-const DEFAULT_LOGO = "https://cdn.rxss.click/rexsystems/logo-transparent.svg";
+const DEFAULT_LOGO = "https://cdn.694206767.xyz/rexsystems/logo-transparent.svg";
 
 export async function loader({ request }: { request: Request }) {
   const { queryOne, isFirstRun } = await import("~/.server/db");

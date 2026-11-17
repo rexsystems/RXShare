@@ -11,3 +11,5 @@ data/
 old.env
 *.log
 stitch-design-export/
+.claude/
+CLAUDE.md

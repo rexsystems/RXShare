@@ -6,7 +6,7 @@ const CSP = [
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://cdn.rxss.click",
+  "img-src 'self' data: blob: https://cdn.694206767.xyz",
   "media-src 'self' blob:",
   "connect-src 'self'",
   "object-src 'none'",
