@@ -15,7 +15,7 @@ export async function loader({ request }: { request: Request }) {
   return { settings, emailConfigured: isEmailConfigured() };
 }
 
-export const meta = ({ data }: { data?: { settings?: { site_name?: string | null } | null } }) => [
+export const meta = ({ loaderData: data }: { loaderData?: { settings?: { site_name?: string | null } | null } }) => [
   { title: `Reset your password | ${data?.settings?.site_name || "RXShare"}` },
 ];
 

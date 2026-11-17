@@ -1,5 +1,6 @@
 services:
   rxshare:
+    image: ghcr.io/rexsystems/rxshare:latest
     build: .
     ports:
       - "6910:3000"

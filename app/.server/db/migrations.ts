@@ -116,7 +116,7 @@ export function getMigrationUpdates(): string[] {
     "ALTER TABLE uploads ADD COLUMN preview_path TEXT",
     "ALTER TABLE system_settings ADD COLUMN dashboard_layout TEXT NOT NULL DEFAULT 'header'",
     "ALTER TABLE system_settings ADD COLUMN logo_url TEXT",
-    "ALTER TABLE system_settings ADD COLUMN background_pattern TEXT NOT NULL DEFAULT 'grid'",
+    "ALTER TABLE system_settings ADD COLUMN background_pattern TEXT NOT NULL DEFAULT 'none'",
     "ALTER TABLE uploads ADD COLUMN downloads INTEGER NOT NULL DEFAULT 0",
     // File expiration & password protection
     "ALTER TABLE uploads ADD COLUMN expires_at TEXT",

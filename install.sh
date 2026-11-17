@@ -140,6 +140,7 @@ case "$NETWORK_MODE" in
     cat > "$COMPOSE_FILE" <<'YAML'
 services:
   rxshare:
+    image: ghcr.io/rexsystems/rxshare:latest
     build: .
     ports:
       - "127.0.0.1:6910:3000"
@@ -161,6 +162,7 @@ YAML
     cat > "$COMPOSE_FILE" <<'YAML'
 services:
   rxshare:
+    image: ghcr.io/rexsystems/rxshare:latest
     build: .
     ports:
       - "6910:3000"
@@ -196,6 +198,7 @@ YAML
     cat > "$COMPOSE_FILE" <<YAML
 services:
   rxshare:
+    image: ghcr.io/rexsystems/rxshare:latest
     build: .
     volumes:
       - rxshare-data:/app/data
@@ -219,10 +222,15 @@ YAML
     ;;
 esac
 
-# --- Build & Start ---
+# --- Pull & Start ---
 echo ""
-info "Building and starting RXShare (this may take a minute)..."
-docker compose -f "$COMPOSE_FILE" --project-directory "$INSTALL_DIR" up -d --build 2>&1 | tail -5
+info "Pulling the RXShare image..."
+if docker compose -f "$COMPOSE_FILE" --project-directory "$INSTALL_DIR" pull rxshare >/dev/null 2>&1; then
+  docker compose -f "$COMPOSE_FILE" --project-directory "$INSTALL_DIR" up -d 2>&1 | tail -5
+else
+  warn "Prebuilt image not available, building from source (this may take a minute)..."
+  docker compose -f "$COMPOSE_FILE" --project-directory "$INSTALL_DIR" up -d --build 2>&1 | tail -5
+fi
 
 echo ""
 echo -e "${GREEN}  ╔══════════════════════════════════════════╗${NC}"
@@ -252,5 +260,5 @@ echo -e "  ${CYAN}Useful commands:${NC}"
 echo -e "    cd $INSTALL_DIR"
 echo -e "    docker compose logs -f        ${CYAN}# view logs${NC}"
 echo -e "    docker compose down            ${CYAN}# stop${NC}"
-echo -e "    docker compose up -d --build   ${CYAN}# rebuild & start${NC}"
+echo -e "    docker compose pull && docker compose up -d   ${CYAN}# update${NC}"
 echo ""

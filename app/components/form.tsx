@@ -206,3 +206,21 @@ export function Notice({ tone, title, children }: { tone: "error" | "info"; titl
     </div>
   );
 }
+
+export function TextAreaField({ label, value, onChange, hint, optional, fieldId, rows = 3, ...rest }: {
+  label: string; value: string; onChange: (v: string) => void; hint?: ReactNode; optional?: boolean; fieldId?: string; rows?: number; placeholder?: string;
+}) {
+  const auto = useId();
+  const id = fieldId || auto;
+  return (
+    <FieldShell id={id} label={label} hint={hint} optional={optional}>
+      <textarea
+        id={id} value={value} rows={rows} onChange={(e) => onChange(e.target.value)}
+        aria-describedby={describedBy(id, hint)} className={cn(controlBase, "resize-y")} {...rest}
+      />
+    </FieldShell>
+  );
+}
+
+/** Same control look for places that need the raw class string (search boxes, toolbar selects). */
+export const controlClass = controlBase;

@@ -165,31 +165,31 @@ export default function SettingsPage() {
     a.click(); URL.revokeObjectURL(a.href);
   };
 
-  const inputCls = "block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all";
+  const inputCls = "block w-full px-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-background text-foreground placeholder:text-muted-foreground/80 text-sm transition-all";
 
   return (
     <div className="space-y-8 max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-1">Settings</h1>
-        <p className="text-gray-500 text-sm">Customize your upload preferences and API access</p>
+        <h1 className="text-3xl font-semibold text-foreground mb-1">Settings</h1>
+        <p className="text-muted-foreground text-sm">Customize your upload preferences and API access</p>
       </div>
 
       {/* Avatar */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Profile Picture</h3>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Profile Picture</h3>
         <div className="flex items-center gap-6">
           <div className="relative group">
-            <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-primary/50 bg-gray-800">
+            <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-primary/50 bg-white/10">
               <img src={getAvatarUrl(user?.username || user?.email || "", 80, user?.avatar_url)} alt="" className="w-full h-full object-cover" />
             </div>
             <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <Icon name="photo_camera" className="text-white text-2xl" />
+              <Icon name="photo_camera" className="text-foreground text-2xl" />
               <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ""; }} />
             </label>
           </div>
           <div className="space-y-2">
-            <p className="text-sm text-gray-400">{avatarUploading ? "Uploading..." : "Click the avatar to upload a new one"}</p>
-            <p className="text-xs text-gray-600">JPEG, PNG, GIF, or WebP. Max 5MB.</p>
+            <p className="text-sm text-muted-foreground">{avatarUploading ? "Uploading..." : "Click the avatar to upload a new one"}</p>
+            <p className="text-xs text-muted-foreground">JPEG, PNG, GIF, or WebP. Max 5MB.</p>
             {user?.avatar_url && (
               <button onClick={removeAvatar} className="text-xs text-red-400 hover:text-red-300 transition-colors">Remove custom avatar</button>
             )}
@@ -199,9 +199,9 @@ export default function SettingsPage() {
 
       {/* Dashboard Layout (user-controlled) */}
       {userControlledLayout && (
-        <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Dashboard Layout</h3>
-          <p className="text-sm text-gray-500 -mt-4">Choose your preferred dashboard layout</p>
+        <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+          <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Dashboard Layout</h3>
+          <p className="text-sm text-muted-foreground -mt-4">Choose your preferred dashboard layout</p>
           <div className="grid grid-cols-3 gap-4">
             {[
               { id: "header", label: "Header", icon: "monitor", desc: "Nav on top" },
@@ -210,11 +210,10 @@ export default function SettingsPage() {
             ].map((l) => (
               <label key={l.id} className="cursor-pointer group relative">
                 <input type="radio" name="userLayout" className="peer sr-only" checked={dashboardLayout === l.id} onChange={() => setDashboardLayout(l.id)} />
-                <div className={`bg-[#1a1a1a] border rounded-xl p-4 flex flex-col items-center justify-center gap-3 transition-all h-32 relative overflow-hidden ${dashboardLayout === l.id ? "border-primary ring-1 ring-primary/50 shadow-glow-primary" : "border-white/10 hover:border-gray-600"}`}>
-                  <Icon name={l.icon} className={`text-3xl ${dashboardLayout === l.id ? "text-primary" : "text-gray-500"}`} />
+                <div className={`bg-card border rounded-md p-4 flex flex-col items-center justify-center gap-3 transition-all h-32 relative overflow-hidden ${dashboardLayout === l.id ? "border-primary ring-1 ring-primary/50" : "border-border hover:border-[var(--control-border)]"}`}>
                   <div className="text-center">
-                    <span className={`block text-sm font-bold ${dashboardLayout === l.id ? "text-primary" : "text-white"}`}>{l.label}</span>
-                    <span className="text-xs text-gray-500">{l.desc}</span>
+                    <span className={`block text-sm font-semibold ${dashboardLayout === l.id ? "text-primary" : "text-foreground"}`}>{l.label}</span>
+                    <span className="text-xs text-muted-foreground">{l.desc}</span>
                   </div>
                 </div>
                 {dashboardLayout === l.id && <div className="absolute top-3 right-3 text-primary text-sm">✓</div>}
@@ -225,110 +224,110 @@ export default function SettingsPage() {
       )}
 
       {/* Embed settings */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Embed Settings</h3>
-        <p className="text-sm text-gray-500 -mt-4">Customize how your shared links appear on Discord, Telegram, etc.</p>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Embed Title</label><input value={embedTitle} onChange={(e) => setEmbedTitle(e.target.value)} className={inputCls} placeholder="File Upload" /></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Embed Description (optional)</label><input value={embedDescription} onChange={(e) => setEmbedDescription(e.target.value)} className={inputCls} placeholder="Shown below the title in embeds" /></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Embed Author (optional)</label><input value={embedAuthor} onChange={(e) => setEmbedAuthor(e.target.value)} className={inputCls} placeholder="Your name or brand" /></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Embed Site Name (optional)</label><input value={embedSiteName} onChange={(e) => setEmbedSiteName(e.target.value)} className={inputCls} placeholder="RXShare" /><p className="text-xs text-gray-600">Shown as the provider name above the title in Discord</p></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Embed Logo URL (optional)</label><input value={embedLogoUrl} onChange={(e) => setEmbedLogoUrl(e.target.value)} className={inputCls} placeholder="https://example.com/logo.png" /><p className="text-xs text-gray-600">Small icon shown next to the site name</p></div>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Embed Settings</h3>
+        <p className="text-sm text-muted-foreground -mt-4">Customize how your shared links appear on Discord, Telegram, etc.</p>
+        <div className="space-y-2"><label htmlFor="st-embed-title-1" className="text-sm font-medium text-muted-foreground">Embed Title</label><input id="st-embed-title-1" value={embedTitle} onChange={(e) => setEmbedTitle(e.target.value)} className={inputCls} placeholder="File Upload" /></div>
+        <div className="space-y-2"><label htmlFor="st-embed-description-optional-2" className="text-sm font-medium text-muted-foreground">Embed Description (optional)</label><input id="st-embed-description-optional-2" value={embedDescription} onChange={(e) => setEmbedDescription(e.target.value)} className={inputCls} placeholder="Shown below the title in embeds" /></div>
+        <div className="space-y-2"><label htmlFor="st-embed-author-optional-3" className="text-sm font-medium text-muted-foreground">Embed Author (optional)</label><input id="st-embed-author-optional-3" value={embedAuthor} onChange={(e) => setEmbedAuthor(e.target.value)} className={inputCls} placeholder="Your name or brand" /></div>
+        <div className="space-y-2"><label htmlFor="st-embed-site-name-optional-4" className="text-sm font-medium text-muted-foreground">Embed Site Name (optional)</label><input id="st-embed-site-name-optional-4" value={embedSiteName} onChange={(e) => setEmbedSiteName(e.target.value)} className={inputCls} placeholder="RXShare" /><p className="text-xs text-muted-foreground">Shown as the provider name above the title in Discord</p></div>
+        <div className="space-y-2"><label htmlFor="st-embed-logo-url-optional-5" className="text-sm font-medium text-muted-foreground">Embed Logo URL (optional)</label><input id="st-embed-logo-url-optional-5" value={embedLogoUrl} onChange={(e) => setEmbedLogoUrl(e.target.value)} className={inputCls} placeholder="https://example.com/logo.png" /><p className="text-xs text-muted-foreground">Small icon shown next to the site name</p></div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400">Theme Color</label>
+          <label className="text-sm font-medium text-muted-foreground">Theme Color</label>
           <div className="flex items-center gap-3">
-            <label className="relative w-10 h-10 rounded-lg border border-white/10 shrink-0 cursor-pointer overflow-hidden group" style={{ backgroundColor: embedColor, boxShadow: `0 0 10px ${embedColor}40` }}>
-              <input type="color" value={embedColor} onChange={(e) => setEmbedColor(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+            <label className="relative w-10 h-10 rounded-lg border border-border shrink-0 cursor-pointer overflow-hidden group" style={{ backgroundColor: embedColor, boxShadow: `0 0 10px ${embedColor}40` }}>
+              <input type="color" aria-label="Embed color picker" value={embedColor} onChange={(e) => setEmbedColor(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                <Icon name="colorize" className="text-white text-sm" />
+                <Icon name="colorize" className="text-foreground text-sm" />
               </div>
             </label>
-            <input value={embedColor} onChange={(e) => setEmbedColor(e.target.value)} className={inputCls + " w-28 font-mono"} />
+            <input aria-label="Embed color hex value" value={embedColor} onChange={(e) => setEmbedColor(e.target.value)} className={inputCls + " w-28 font-mono"} />
           </div>
         </div>
         <div className="h-px bg-white/5" />
         <div className="flex items-center justify-between">
-          <div><p className="text-sm font-medium text-white">Default Visibility</p><p className="text-xs text-gray-500">New uploads are {defaultPublic ? "public" : "private"} by default</p></div>
-          <Switch checked={defaultPublic} onCheckedChange={setDefaultPublic} />
+          <div><p className="text-sm font-medium text-foreground">Default Visibility</p><p className="text-xs text-muted-foreground">New uploads are {defaultPublic ? "public" : "private"} by default</p></div>
+          <Switch aria-label="New uploads are public by default" checked={defaultPublic} onCheckedChange={setDefaultPublic} />
         </div>
         <div className="h-px bg-white/5" />
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400">Custom URL Path (optional)</label>
-          <input value={customPath} onChange={(e) => setCustomPath(e.target.value.toLowerCase())} className={inputCls} placeholder="my-files" />
-          <p className="text-xs text-gray-600">Use instead of your username in URLs</p>
+          <label htmlFor="st-custom-url-path-optional-6" className="text-sm font-medium text-muted-foreground">Custom URL Path (optional)</label>
+          <input id="st-custom-url-path-optional-6" value={customPath} onChange={(e) => setCustomPath(e.target.value.toLowerCase())} className={inputCls} placeholder="my-files" />
+          <p className="text-xs text-muted-foreground">Use instead of your username in URLs</p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400">ShareX Auto-Folder</label>
-          <input value={sharexFolderName} onChange={(e) => setSharexFolderName(e.target.value)} className={inputCls} placeholder="ShareX" />
-          <p className="text-xs text-gray-600">Uploads via API token are automatically placed in this folder</p>
+          <label htmlFor="st-sharex-auto-folder-7" className="text-sm font-medium text-muted-foreground">ShareX Auto-Folder</label>
+          <input id="st-sharex-auto-folder-7" value={sharexFolderName} onChange={(e) => setSharexFolderName(e.target.value)} className={inputCls} placeholder="ShareX" />
+          <p className="text-xs text-muted-foreground">Uploads via API token are automatically placed in this folder</p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400">ShareX Copied URL</label>
+          <label className="text-sm font-medium text-muted-foreground">ShareX Copied URL</label>
           <div className="flex gap-2">
             <button onClick={() => setSharexUrlMode("raw")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${sharexUrlMode === "raw" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"}`}>
-              <Icon name="image" className="text-base mr-1.5 align-middle" /> Raw Image
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${sharexUrlMode === "raw" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-muted-foreground border border-border hover:bg-white/10"}`}>
+              Raw Image
             </button>
             <button onClick={() => setSharexUrlMode("viewer")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${sharexUrlMode === "viewer" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"}`}>
-              <Icon name="visibility" className="text-base mr-1.5 align-middle" /> Viewer Page
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${sharexUrlMode === "viewer" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-muted-foreground border border-border hover:bg-white/10"}`}>
+              Viewer Page
             </button>
           </div>
-          <p className="text-xs text-gray-600">What URL ShareX copies after upload — raw file or viewer page with embed</p>
+          <p className="text-xs text-muted-foreground">What URL ShareX copies after upload — raw file or viewer page with embed</p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-400">Duplicate File Handling</label>
+          <label className="text-sm font-medium text-muted-foreground">Duplicate File Handling</label>
           <div className="flex gap-2">
             <button onClick={() => setDuplicateHandling("reject")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${duplicateHandling === "reject" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"}`}>
-              <Icon name="block" className="text-base mr-1.5 align-middle" /> Reject
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${duplicateHandling === "reject" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-muted-foreground border border-border hover:bg-white/10"}`}>
+              Reject
             </button>
             <button onClick={() => setDuplicateHandling("reuse")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${duplicateHandling === "reuse" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"}`}>
-              <Icon name="link" className="text-base mr-1.5 align-middle" /> Reuse
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${duplicateHandling === "reuse" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-muted-foreground border border-border hover:bg-white/10"}`}>
+              Reuse
             </button>
             <button onClick={() => setDuplicateHandling("allow")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${duplicateHandling === "allow" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"}`}>
-              <Icon name="file_copy" className="text-base mr-1.5 align-middle" /> Allow
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${duplicateHandling === "allow" ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-muted-foreground border border-border hover:bg-white/10"}`}>
+              Allow
             </button>
           </div>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-muted-foreground">
             {duplicateHandling === "reject" && "Return error 409 when uploading identical files"}
             {duplicateHandling === "reuse" && "Return existing file URL instead of uploading again"}
             {duplicateHandling === "allow" && "Allow uploading duplicate files (creates new entries)"}
           </p>
         </div>
-        <button onClick={saveSettings} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-6 py-2.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-105">Save Settings</button>
+        <button onClick={saveSettings} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-6 py-2.5 rounded-md font-semibold transition-all">Save Settings</button>
       </section>
 
       {/* Two-Factor Authentication */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /><Icon name="security" className="text-xl" /> Two-Factor Authentication</h3>
-        <p className="text-sm text-gray-500 -mt-4">Add an extra layer of security to your account</p>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Two-Factor Authentication</h3>
+        <p className="text-sm text-muted-foreground -mt-4">Add an extra layer of security to your account</p>
         
         {!totp_enabled && !totp2faSetup && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-400">Protect your account with time-based one-time passwords (TOTP) using apps like Google Authenticator, Authy, or 1Password.</p>
-            <button onClick={start2faSetup} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-6 py-2.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-105 flex items-center gap-2">
-              <Icon name="add" className="text-lg" /> Enable 2FA
+            <p className="text-sm text-muted-foreground">Protect your account with time-based one-time passwords (TOTP) using apps like Google Authenticator, Authy, or 1Password.</p>
+            <button onClick={start2faSetup} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-6 py-2.5 rounded-md font-semibold transition-all flex items-center gap-2">
+              Enable 2FA
             </button>
           </div>
         )}
 
         {totp2faSetup && (
           <div className="space-y-6">
-            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-6 space-y-4">
-              <p className="text-sm font-medium text-white">Step 1: Scan QR Code</p>
-              <p className="text-xs text-gray-500">Scan this QR code with your authenticator app</p>
+            <div className="bg-white/[0.03] border border-border rounded-md p-6 space-y-4">
+              <p className="text-sm font-medium text-foreground">Step 1: Scan QR Code</p>
+              <p className="text-xs text-muted-foreground">Scan this QR code with your authenticator app</p>
               <div className="flex justify-center">
-                <img src={totp2faSetup.qrCode} alt="2FA QR Code" className="w-48 h-48 rounded-lg border border-white/10" />
+                <img src={totp2faSetup.qrCode} alt="2FA QR Code" className="w-48 h-48 rounded-lg border border-border" />
               </div>
-              <p className="text-xs text-gray-500 text-center">Or enter this secret manually:</p>
-              <code className="block text-xs bg-[#0a0a0a] text-gray-300 p-3 rounded-lg text-center font-mono border border-white/10">{totp2faSetup.secret}</code>
+              <p className="text-xs text-muted-foreground text-center">Or enter this secret manually:</p>
+              <code className="block text-xs bg-background text-foreground p-3 rounded-lg text-center font-mono border border-[var(--control-border)]">{totp2faSetup.secret}</code>
             </div>
 
-            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-6 space-y-4">
-              <p className="text-sm font-medium text-white">Step 2: Save Backup Codes</p>
-              <p className="text-xs text-gray-500">Save these codes in a safe place. You can use them to access your account if you lose your device.</p>
+            <div className="bg-white/[0.03] border border-border rounded-md p-6 space-y-4">
+              <p className="text-sm font-medium text-foreground">Step 2: Save Backup Codes</p>
+              <p className="text-xs text-muted-foreground">Save these codes in a safe place. You can use them to access your account if you lose your device.</p>
               {!showBackupCodes ? (
                 <button onClick={() => setShowBackupCodes(true)} className="text-sm text-primary hover:text-primary/80 transition-colors">
                   Show backup codes
@@ -336,16 +335,16 @@ export default function SettingsPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {totp2faSetup.backupCodes.map((code, i) => (
-                    <code key={i} className="text-xs bg-[#0a0a0a] text-gray-300 p-2 rounded-lg text-center font-mono border border-white/10">{code}</code>
+                    <code key={i} className="text-xs bg-background text-foreground p-2 rounded-lg text-center font-mono border border-[var(--control-border)]">{code}</code>
                   ))}
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400">Step 3: Verify Code</label>
-              <p className="text-xs text-gray-500">Enter the 6-digit code from your authenticator app</p>
-              <input
+              <label htmlFor="st-step-3-verify-code-8" className="text-sm font-medium text-muted-foreground">Step 3: Verify Code</label>
+              <p className="text-xs text-muted-foreground">Enter the 6-digit code from your authenticator app</p>
+              <input id="st-step-3-verify-code-8"
                 value={totpVerifyCode}
                 onChange={(e) => setTotpVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="000000"
@@ -355,10 +354,10 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex gap-2">
-              <button onClick={enable2fa} disabled={totpVerifyCode.length !== 6} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-6 py-2.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={enable2fa} disabled={totpVerifyCode.length !== 6} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-6 py-2.5 rounded-md font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 Enable 2FA
               </button>
-              <button onClick={() => { setTotp2faSetup(null); setTotpVerifyCode(""); }} className="px-6 py-2.5 text-sm text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">
+              <button onClick={() => { setTotp2faSetup(null); setTotpVerifyCode(""); }} className="px-6 py-2.5 text-sm text-muted-foreground hover:text-foreground bg-white/5 hover:bg-white/10 border border-border rounded-md transition-colors">
                 Cancel
               </button>
             </div>
@@ -367,18 +366,18 @@ export default function SettingsPage() {
 
         {totp_enabled && !totp2faSetup && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+            <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-md">
               <Icon name="check_circle" className="text-green-400 text-2xl" />
               <div>
                 <p className="text-sm font-medium text-green-400">2FA is enabled</p>
-                <p className="text-xs text-gray-500">Your account is protected with two-factor authentication</p>
+                <p className="text-xs text-muted-foreground">Your account is protected with two-factor authentication</p>
               </div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400">Disable 2FA</label>
-              <p className="text-xs text-gray-500">Enter a verification code from your authenticator app to disable 2FA</p>
-              <input
+              <label htmlFor="st-disable-2fa-9" className="text-sm font-medium text-muted-foreground">Disable 2FA</label>
+              <p className="text-xs text-muted-foreground">Enter a verification code from your authenticator app to disable 2FA</p>
+              <input id="st-disable-2fa-9"
                 value={totpDisableCode}
                 onChange={(e) => setTotpDisableCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="000000"
@@ -387,7 +386,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <button onClick={disable2fa} disabled={totpDisableCode.length !== 6} className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={disable2fa} disabled={totpDisableCode.length !== 6} className="bg-red-600 hover:bg-red-600 text-white px-6 py-2.5 rounded-md font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
               Disable 2FA
             </button>
           </div>
@@ -396,11 +395,11 @@ export default function SettingsPage() {
 
       {/* Invites */}
       {inviteQuota > 0 && (
-        <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /><Icon name="mail" className="text-xl" /> Invites</h3>
-          <p className="text-sm text-gray-500 -mt-4">Invite friends to join. You have {Math.max(0, inviteQuota - invitesUsed)} of {inviteQuota} invites remaining.</p>
+        <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+          <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Invites</h3>
+          <p className="text-sm text-muted-foreground -mt-4">Invite friends to join. You have {Math.max(0, inviteQuota - invitesUsed)} of {inviteQuota} invites remaining.</p>
           
-          <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, (invitesUsed / inviteQuota) * 100)}%` }} />
           </div>
 
@@ -425,9 +424,9 @@ export default function SettingsPage() {
               } finally { setInviteCreating(false); }
             }}
             disabled={invitesUsed >= inviteQuota || inviteCreating}
-            className="bg-primary hover:bg-[var(--primary-hover)] text-white px-6 py-2.5 rounded-xl font-bold shadow-glow-primary transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-6 py-2.5 rounded-md font-semibold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Icon name="link" className="text-lg" /> {inviteCreating ? "Creating..." : "Generate Invite Link"}
+            {inviteCreating ? "Creating..." : "Generate Invite Link"}
           </button>
 
           {userInvites.length > 0 && (
@@ -436,10 +435,10 @@ export default function SettingsPage() {
                 const expired = inv.expires_at && new Date(inv.expires_at) < new Date();
                 const full = inv.uses >= inv.max_uses;
                 return (
-                  <div key={inv.id} className={`flex items-center justify-between p-3 bg-white/[0.03] border border-white/5 rounded-xl ${(expired || full) ? "opacity-50" : ""}`}>
+                  <div key={inv.id} className={`flex items-center justify-between p-3 bg-white/[0.03] border border-border rounded-md ${(expired || full) ? "opacity-50" : ""}`}>
                     <div>
-                      <p className="text-sm font-mono text-white">{inv.code}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-mono text-foreground">{inv.code}</p>
+                      <p className="text-xs text-muted-foreground">
                         {inv.uses}/{inv.max_uses} uses
                         {inv.used_by_name && ` • used by ${inv.used_by_name}`}
                         {expired && " • Expired"}
@@ -448,12 +447,12 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => { const base = systemSettings?.base_url || window.location.origin; navigator.clipboard.writeText(`${base}/auth/sign-up?invite=${inv.code}`); toast({ title: "Link copied!" }); }}
-                        className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"><Icon name="content_copy" /></button>
+                        className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground">Copy</button>
                       <button onClick={async () => {
                         await fetch("/api/user/invites", { method: "DELETE", headers: { "Content-Type": "application/json", ...(getCsrfToken() ? { "X-CSRF-Token": getCsrfToken()! } : {}) }, body: JSON.stringify({ id: inv.id }) });
                         setUserInvites(prev => prev.filter(i => i.id !== inv.id));
                         toast({ title: "Invite deleted" });
-                      }} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Icon name="delete" /></button>
+                      }} className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400">Delete</button>
                     </div>
                   </div>
                 );
@@ -464,41 +463,41 @@ export default function SettingsPage() {
       )}
 
       {/* API Tokens */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /><Icon name="vpn_key" className="text-xl" /> API Tokens</h3>
-        <p className="text-sm text-gray-500 -mt-4">Create tokens for ShareX or API access</p>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">API Tokens</h3>
+        <p className="text-sm text-muted-foreground -mt-4">Create tokens for ShareX or API access</p>
         <div className="flex gap-2">
-          <input placeholder="Token name (e.g. ShareX)" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className={inputCls} />
-          <button onClick={createToken} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-glow-primary flex items-center gap-2 shrink-0">
-            <Icon name="add" className="text-lg" /> Create
+          <input aria-label="Token name" placeholder="Token name (e.g. ShareX)" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className={inputCls} />
+          <button onClick={createToken} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 shrink-0">
+            Create
           </button>
         </div>
         {newToken && (
-          <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl space-y-2">
+          <div className="bg-primary/10 border border-primary/20 p-4 rounded-md space-y-2">
             <p className="text-sm font-medium text-primary">Copy your token now — it won't be shown again!</p>
             <div className="flex items-center gap-2">
-              <code className="text-xs bg-[#0a0a0a] text-gray-300 p-2 rounded-lg flex-1 break-all border border-white/10">{newToken}</code>
+              <code className="text-xs bg-background text-foreground p-2 rounded-lg flex-1 break-all border border-[var(--control-border)]">{newToken}</code>
               <button onClick={() => { navigator.clipboard.writeText(newToken); toast({ title: "Copied!" }); }}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"><Icon name="content_copy" /></button>
+                className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground">Copy</button>
             </div>
           </div>
         )}
         {tokens.length > 0 && (
           <div className="space-y-2">
             {tokens.map((t: any) => (
-              <div key={t.id} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-xl">
+              <div key={t.id} className="flex items-center justify-between p-4 bg-white/[0.03] border border-border rounded-md">
                 <div>
-                  <p className="text-sm font-medium text-white">{t.name}</p>
-                  <p className="text-xs text-gray-500">Created {formatRelativeDate(t.created_at)}{t.last_used_at && ` • Last used ${formatRelativeDate(t.last_used_at)}`}</p>
+                  <p className="text-sm font-medium text-foreground">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">Created {formatRelativeDate(t.created_at)}{t.last_used_at && ` • Last used ${formatRelativeDate(t.last_used_at)}`}</p>
                 </div>
-                <button onClick={() => deleteToken(t.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Icon name="delete" /></button>
+                <button onClick={() => deleteToken(t.id)} className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400">Delete</button>
               </div>
             ))}
           </div>
         )}
         <div className="h-px bg-white/5" />
-        <button onClick={downloadShareXConfig} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors">
-          <Icon name="download" className="text-lg" /> Download ShareX Config
+        <button onClick={downloadShareXConfig} className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground bg-white/5 hover:bg-white/10 border border-border rounded-lg transition-colors">
+          Download ShareX Config
         </button>
       </section>
     </div>

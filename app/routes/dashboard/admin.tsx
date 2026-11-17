@@ -42,25 +42,21 @@ export default function AdminPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white mb-1">Admin Panel</h1>
-        <p className="text-gray-500 text-sm">Manage users, settings, and design</p>
+        <h1 className="text-3xl font-semibold text-foreground mb-1">Admin Panel</h1>
+        <p className="text-muted-foreground text-sm">Manage users, settings, and design</p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-white/10">
-        <nav className="flex space-x-8">
+      <div className="border-b border-border">
+        <nav role="tablist" aria-label="Admin sections" className="-mb-px flex gap-6 overflow-x-auto">
           {tabs.map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={cn("pb-4 px-1 font-medium flex items-center gap-2 transition-colors relative",
+            <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}
+              className={cn("min-h-11 shrink-0 border-b-2 px-1 text-sm transition-colors",
                 activeTab === tab.id
-                  ? "text-primary font-bold"
-                  : "text-gray-500 hover:text-white border-b-2 border-transparent group"
+                  ? "border-primary font-semibold text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}>
-              <Icon name={tab.icon} className={activeTab === tab.id ? "" : "group-hover:scale-110 transition-transform"} />
               {tab.label}
-              {activeTab === tab.id && (
-                <span className="absolute -bottom-[1px] left-0 w-full h-[2px] bg-primary shadow-glow-primary" />
-              )}
             </button>
           ))}
         </nav>
@@ -148,28 +144,27 @@ function UsersTab({ users, allUploads, currentUserId, toast, revalidator }: any)
     finally { setCreating(false); }
   };
 
-  const inputCls = "block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all";
+  const inputCls = "block w-full px-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-background text-foreground placeholder:text-muted-foreground/80 text-sm transition-all";
 
   return (
     <div className="space-y-6 mt-6">
       {/* Search */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input className="block w-full pl-10 pr-4 py-2.5 border border-white/10 rounded-lg bg-[#141414] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-            placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="block w-full pl-4 pr-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-card text-foreground placeholder:text-muted-foreground/80 text-sm"
+            aria-label="Search users" placeholder="Search users" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="bg-primary hover:bg-[var(--primary-hover)] text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-glow-primary flex items-center gap-2 hover:scale-105">
-          <Icon name="person_add" className="text-lg" /> Create User
+          className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
+          Create User
         </button>
       </div>
 
       {/* Users table */}
-      <div className="bg-[#141414] border border-white/5 rounded-2xl shadow-glow-card overflow-hidden">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         <table className="w-full text-left">
           <thead>
-            <tr className="bg-white/5 border-b border-white/10 text-xs font-semibold uppercase text-gray-400 tracking-wider">
+            <tr className="bg-white/5 border-b border-border text-xs font-semibold text-muted-foreground">
               <th className="px-6 py-4">User</th>
               <th className="px-6 py-4">Role</th>
               <th className="px-6 py-4">Status</th>
@@ -185,53 +180,51 @@ function UsersTab({ users, allUploads, currentUserId, toast, revalidator }: any)
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <div className={cn("w-10 h-10 rounded-full p-0.5", u.is_admin === 1 ? "bg-gradient-to-br from-primary to-[var(--primary-hover)]" : "bg-gray-800")}>
+                        <div className={cn("w-10 h-10 rounded-full p-0.5", u.is_admin === 1 ? "" : "bg-gray-800")}>
                           <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                             <img alt="" className="w-full h-full object-cover opacity-90" src={getAvatarUrl(u.username || u.email, 80, u.avatar_url)} />
                           </div>
                         </div>
-                        <div className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#141414]",
-                          u.is_active !== 0 ? "bg-green-500" : "bg-red-500")} />
                       </div>
                       <div>
-                        <div className="font-semibold text-white">{u.username || u.email}</div>
-                        <div className="text-xs text-gray-500">{u.email}</div>
+                        <div className="font-semibold text-foreground">{u.username || u.email}</div>
+                        <div className="text-xs text-muted-foreground">{u.email}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     {u.is_admin === 1 ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary border border-primary/30 shadow-glow-primary">
-                        <Icon name="verified_user" className="text-[14px]" /> Admin
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary border border-primary/30">
+                        Admin
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-400 border border-white/10">
-                        <Icon name="person" className="text-[14px]" /> User
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-muted-foreground border border-border">
+                        User
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className={cn("w-1.5 h-1.5 rounded-full", u.is_active !== 0 ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]")} />
-                      <span className={cn("text-sm", u.is_active !== 0 ? "text-gray-300" : "text-red-400")}>{u.is_active !== 0 ? "Active" : "Suspended"}</span>
+                      <span className={cn("w-1.5 h-1.5 rounded-full", u.is_active !== 0 ? "bg-green-500" : "bg-red-600")} />
+                      <span className={cn("text-sm", u.is_active !== 0 ? "text-foreground" : "text-red-400")}>{u.is_active !== 0 ? "Active" : "Suspended"}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-300">{formatFileSize(u.disk_used || 0)}</div>
-                    <div className="text-xs text-gray-600">{getUserUploadCount(u.id)} files</div>
+                    <div className="text-sm text-foreground">{formatFileSize(u.disk_used || 0)}</div>
+                    <div className="text-xs text-muted-foreground">{getUserUploadCount(u.id)} files</div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => { setEditUser(u); setEditQuota(String(Math.round((u.disk_quota || 0) / 1024 / 1024))); setEditMaxUpload(String(Math.round((u.max_upload_size || 0) / 1024 / 1024))); setEditInviteQuota(String(u.invite_quota || 0)); }}
-                        className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"><Icon name="edit" /></button>
+                        className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground">Edit</button>
                       {!isSelf && (
                         <>
                           <button onClick={() => toggleAdmin(u.id)}
-                            className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"><Icon name={u.is_admin ? "shield" : "admin_panel_settings"} /></button>
+                            className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground">{u.is_admin ? "Remove admin" : "Make admin"}</button>
                           <button onClick={() => toggleActive(u.id)}
-                            className={cn("p-2 hover:bg-white/10 rounded-lg transition-all", u.is_active !== 0 ? "text-green-500" : "text-red-500")}><Icon name={u.is_active !== 0 ? "check_circle" : "block"} /></button>
+                            className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground">{u.is_active !== 0 ? "Deactivate" : "Activate"}</button>
                           <button onClick={() => setDeleteUser(u)}
-                            className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Icon name="delete" /></button>
+                            className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400">Delete</button>
                         </>
                       )}
                     </div>
@@ -241,17 +234,17 @@ function UsersTab({ users, allUploads, currentUserId, toast, revalidator }: any)
             })}
           </tbody>
         </table>
-        <div className="px-6 py-4 border-t border-white/5 bg-white/[0.02]">
-          <div className="text-xs text-gray-500">Showing <span className="text-white font-medium">{filtered.length}</span> of <span className="text-white font-medium">{users.length}</span> users</div>
+        <div className="px-6 py-4 border-t border-border bg-white/[0.02]">
+          <div className="text-xs text-muted-foreground">Showing <span className="text-foreground font-medium">{filtered.length}</span> of <span className="text-foreground font-medium">{users.length}</span> users</div>
         </div>
       </div>
 
       {/* Delete dialog */}
       <Dialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
-        <DialogContent className="bg-[#141414] border-white/10">
-          <DialogHeader><DialogTitle className="text-white">Delete user?</DialogTitle><DialogDescription className="text-gray-500">This will delete all uploads and data for {deleteUser?.username || deleteUser?.email}. This cannot be undone.</DialogDescription></DialogHeader>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader><DialogTitle className="text-foreground">Delete user?</DialogTitle><DialogDescription className="text-muted-foreground">This will delete all uploads and data for {deleteUser?.username || deleteUser?.email}. This cannot be undone.</DialogDescription></DialogHeader>
           <DialogFooter>
-            <button onClick={() => setDeleteUser(null)} className="px-4 py-2 text-sm text-gray-400 border border-white/10 rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+            <button onClick={() => setDeleteUser(null)} className="px-4 py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
             <button onClick={handleDelete} className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Delete</button>
           </DialogFooter>
         </DialogContent>
@@ -259,47 +252,47 @@ function UsersTab({ users, allUploads, currentUserId, toast, revalidator }: any)
 
       {/* Edit dialog */}
       <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
-        <DialogContent className="bg-[#141414] border-white/10">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit {editUser?.username || editUser?.email}{editUser?.id === currentUserId ? " (You)" : ""}</DialogTitle>
+            <DialogTitle className="text-foreground">Edit {editUser?.username || editUser?.email}{editUser?.id === currentUserId ? " (You)" : ""}</DialogTitle>
             {editUser?.id === currentUserId && (
-              <DialogDescription className="text-gray-500">You can only modify your quota and upload limits.</DialogDescription>
+              <DialogDescription className="text-muted-foreground">You can only modify your quota and upload limits.</DialogDescription>
             )}
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Disk Quota (MB)</label><input type="number" value={editQuota} onChange={(e) => setEditQuota(e.target.value)} className={inputCls} /></div>
-            <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Max Upload Size (MB)</label><input type="number" value={editMaxUpload} onChange={(e) => setEditMaxUpload(e.target.value)} className={inputCls} /></div>
+            <div className="space-y-2"><label htmlFor="ad-disk-quota-mb-1" className="text-sm font-medium text-muted-foreground">Disk Quota (MB)</label><input id="ad-disk-quota-mb-1" type="number" value={editQuota} onChange={(e) => setEditQuota(e.target.value)} className={inputCls} /></div>
+            <div className="space-y-2"><label htmlFor="ad-max-upload-size-mb-2" className="text-sm font-medium text-muted-foreground">Max Upload Size (MB)</label><input id="ad-max-upload-size-mb-2" type="number" value={editMaxUpload} onChange={(e) => setEditMaxUpload(e.target.value)} className={inputCls} /></div>
             {editUser?.id !== currentUserId && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Invite Quota</label>
-                <input type="number" value={editInviteQuota} onChange={(e) => setEditInviteQuota(e.target.value)} className={inputCls} placeholder="0" />
-                <p className="text-xs text-gray-600">How many invites this user can create. 0 = none.</p>
+                <label htmlFor="ad-invite-quota-3" className="text-sm font-medium text-muted-foreground">Invite Quota</label>
+                <input id="ad-invite-quota-3" type="number" value={editInviteQuota} onChange={(e) => setEditInviteQuota(e.target.value)} className={inputCls} placeholder="0" />
+                <p className="text-xs text-muted-foreground">How many invites this user can create. 0 = none.</p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <button onClick={() => setEditUser(null)} className="px-4 py-2 text-sm text-gray-400 border border-white/10 rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-            <button onClick={handleEditSave} className="px-4 py-2 text-sm text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all">Save</button>
+            <button onClick={() => setEditUser(null)} className="px-4 py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+            <button onClick={handleEditSave} className="px-4 py-2 text-sm text-primary-foreground bg-primary hover:bg-[var(--primary-hover)] rounded-lg transition-all">Save</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Create User dialog */}
       <Dialog open={showCreate} onOpenChange={() => setShowCreate(false)}>
-        <DialogContent className="bg-[#141414] border-white/10">
-          <DialogHeader><DialogTitle className="text-white">Create User</DialogTitle><DialogDescription className="text-gray-500">Add a new user to the system.</DialogDescription></DialogHeader>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader><DialogTitle className="text-foreground">Create User</DialogTitle><DialogDescription className="text-muted-foreground">Add a new user to the system.</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Email</label><input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} className={inputCls} placeholder="user@example.com" /></div>
-            <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Username</label><input value={createUsername} onChange={(e) => setCreateUsername(e.target.value)} className={inputCls} placeholder="username" /></div>
-            <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Password</label><input type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} className={inputCls} placeholder="••••••••" /></div>
+            <div className="space-y-2"><label htmlFor="ad-email-4" className="text-sm font-medium text-muted-foreground">Email</label><input id="ad-email-4" type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} className={inputCls} placeholder="user@example.com" /></div>
+            <div className="space-y-2"><label htmlFor="ad-username-5" className="text-sm font-medium text-muted-foreground">Username</label><input id="ad-username-5" value={createUsername} onChange={(e) => setCreateUsername(e.target.value)} className={inputCls} placeholder="username" /></div>
+            <div className="space-y-2"><label htmlFor="ad-password-6" className="text-sm font-medium text-muted-foreground">Password</label><input id="ad-password-6" type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} className={inputCls} placeholder="••••••••" /></div>
             <div className="flex items-center justify-between">
-              <div><p className="text-sm font-medium text-white">Admin</p><p className="text-xs text-gray-500">Grant admin privileges</p></div>
-              <Switch checked={createIsAdmin} onCheckedChange={setCreateIsAdmin} />
+              <div><p className="text-sm font-medium text-foreground">Admin</p><p className="text-xs text-muted-foreground">Grant admin privileges</p></div>
+              <Switch aria-label="Make this user an admin" checked={createIsAdmin} onCheckedChange={setCreateIsAdmin} />
             </div>
           </div>
           <DialogFooter>
-            <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-400 border border-white/10 rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-            <button onClick={handleCreateUser} disabled={creating} className="px-4 py-2 text-sm text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all disabled:opacity-50">{creating ? "Creating..." : "Create"}</button>
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+            <button onClick={handleCreateUser} disabled={creating} className="px-4 py-2 text-sm text-primary-foreground bg-primary hover:bg-[var(--primary-hover)] rounded-lg transition-all disabled:opacity-50">{creating ? "Creating..." : "Create"}</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -336,38 +329,38 @@ function SettingsTab({ systemSettings, toast, revalidator }: any) {
     if (res.ok) { revalidator.revalidate(); toast({ title: "Settings saved!" }); }
   };
 
-  const inputCls = "block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all";
+  const inputCls = "block w-full px-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-background text-foreground placeholder:text-muted-foreground/80 text-sm transition-all";
 
   return (
     <div className="mt-6 max-w-xl space-y-6">
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> General Settings</h3>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Site Name</label><input value={siteName} onChange={(e) => setSiteName(e.target.value)} className={inputCls} /></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Site Description</label><input value={siteDesc} onChange={(e) => setSiteDesc(e.target.value)} className={inputCls} /></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Base URL</label><input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} className={inputCls} placeholder="https://share.example.com" /></div>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">General Settings</h3>
+        <div className="space-y-2"><label htmlFor="ad-site-name-7" className="text-sm font-medium text-muted-foreground">Site Name</label><input id="ad-site-name-7" value={siteName} onChange={(e) => setSiteName(e.target.value)} className={inputCls} /></div>
+        <div className="space-y-2"><label htmlFor="ad-site-description-8" className="text-sm font-medium text-muted-foreground">Site Description</label><input id="ad-site-description-8" value={siteDesc} onChange={(e) => setSiteDesc(e.target.value)} className={inputCls} /></div>
+        <div className="space-y-2"><label htmlFor="ad-base-url-9" className="text-sm font-medium text-muted-foreground">Base URL</label><input id="ad-base-url-9" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} className={inputCls} placeholder="https://share.example.com" /></div>
         <div className="h-px bg-white/5" />
         <div className="flex items-center justify-between">
-          <div><p className="text-sm font-medium text-white">Allow Registration</p><p className="text-xs text-gray-500">Let new users sign up</p></div>
-          <Switch checked={allowReg} onCheckedChange={setAllowReg} />
+          <div><p className="text-sm font-medium text-foreground">Allow Registration</p><p className="text-xs text-muted-foreground">Let new users sign up</p></div>
+          <Switch aria-label="Allow registration" checked={allowReg} onCheckedChange={setAllowReg} />
         </div>
         <div className="flex items-center justify-between">
-          <div><p className="text-sm font-medium text-white">Allow Login</p><p className="text-xs text-gray-500">Enable/disable login page</p></div>
-          <Switch checked={allowLogin} onCheckedChange={setAllowLogin} />
+          <div><p className="text-sm font-medium text-foreground">Allow Login</p><p className="text-xs text-muted-foreground">Enable/disable login page</p></div>
+          <Switch aria-label="Allow login" checked={allowLogin} onCheckedChange={setAllowLogin} />
         </div>
         <div className="flex items-center justify-between">
-          <div><p className="text-sm font-medium text-white">Show "Powered by RXShare"</p><p className="text-xs text-gray-500">Display credit badge on viewer pages</p></div>
-          <Switch checked={showPoweredBy} onCheckedChange={setShowPoweredBy} />
+          <div><p className="text-sm font-medium text-foreground">Show "Powered by RXShare"</p><p className="text-xs text-muted-foreground">Display credit badge on viewer pages</p></div>
+          <Switch aria-label="Show the RXShare link on shared pages" checked={showPoweredBy} onCheckedChange={setShowPoweredBy} />
         </div>
         <div className="h-px bg-white/5" />
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Default Quota (MB)</label><input type="number" value={defaultQuota} onChange={(e) => setDefaultQuota(e.target.value)} className={inputCls} /><p className="text-xs text-gray-600">{formatFileSize(parseInt(defaultQuota || "0") * 1024 * 1024)}</p></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Max Upload Size (MB)</label><input type="number" value={maxUpload} onChange={(e) => setMaxUpload(e.target.value)} className={inputCls} /><p className="text-xs text-gray-600">{formatFileSize(parseInt(maxUpload || "0") * 1024 * 1024)}</p></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Default Invite Quota</label><input type="number" value={defaultInviteQuota} onChange={(e) => setDefaultInviteQuota(e.target.value)} className={inputCls} min="0" /><p className="text-xs text-gray-600">Invites given to new users on registration. 0 = none.</p></div>
+        <div className="space-y-2"><label htmlFor="ad-default-quota-mb-10" className="text-sm font-medium text-muted-foreground">Default Quota (MB)</label><input id="ad-default-quota-mb-10" type="number" value={defaultQuota} onChange={(e) => setDefaultQuota(e.target.value)} className={inputCls} /><p className="text-xs text-muted-foreground">{formatFileSize(parseInt(defaultQuota || "0") * 1024 * 1024)}</p></div>
+        <div className="space-y-2"><label htmlFor="ad-max-upload-size-mb-11" className="text-sm font-medium text-muted-foreground">Max Upload Size (MB)</label><input id="ad-max-upload-size-mb-11" type="number" value={maxUpload} onChange={(e) => setMaxUpload(e.target.value)} className={inputCls} /><p className="text-xs text-muted-foreground">{formatFileSize(parseInt(maxUpload || "0") * 1024 * 1024)}</p></div>
+        <div className="space-y-2"><label htmlFor="ad-default-invite-quota-12" className="text-sm font-medium text-muted-foreground">Default Invite Quota</label><input id="ad-default-invite-quota-12" type="number" value={defaultInviteQuota} onChange={(e) => setDefaultInviteQuota(e.target.value)} className={inputCls} min="0" /><p className="text-xs text-muted-foreground">Invites given to new users on registration. 0 = none.</p></div>
         <div className="h-px bg-white/5" />
-        <h4 className="text-sm font-bold text-white flex items-center gap-2"><Icon name="mail" className="text-primary text-lg" /> Email (Resend)</h4>
-        <p className="text-xs text-gray-500 -mt-4">Required for forgot password and email notifications. Get an API key from <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">resend.com</a></p>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Resend API Key</label><input type="password" value={resendApiKey} onChange={(e) => setResendApiKey(e.target.value)} className={inputCls} placeholder="re_..." /></div>
-        <div className="space-y-2"><label className="text-sm font-medium text-gray-400">From Address</label><input value={emailFrom} onChange={(e) => setEmailFrom(e.target.value)} className={inputCls} placeholder="RXShare <noreply@yourdomain.com>" /><p className="text-xs text-gray-600">Must be a verified domain in Resend, or use noreply@resend.dev for testing</p></div>
-        <button onClick={save} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-8 py-3 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-105 flex items-center gap-2">Save Configuration</button>
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">Email (Resend)</h4>
+        <p className="text-xs text-muted-foreground -mt-4">Required for forgot password and email notifications. Get an API key from <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">resend.com</a></p>
+        <div className="space-y-2"><label htmlFor="ad-resend-api-key-13" className="text-sm font-medium text-muted-foreground">Resend API Key</label><input id="ad-resend-api-key-13" type="password" value={resendApiKey} onChange={(e) => setResendApiKey(e.target.value)} className={inputCls} placeholder="re_..." /></div>
+        <div className="space-y-2"><label htmlFor="ad-from-address-14" className="text-sm font-medium text-muted-foreground">From Address</label><input id="ad-from-address-14" value={emailFrom} onChange={(e) => setEmailFrom(e.target.value)} className={inputCls} placeholder="RXShare <noreply@yourdomain.com>" /><p className="text-xs text-muted-foreground">Must be a verified domain in Resend, or use noreply@resend.dev for testing</p></div>
+        <button onClick={save} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-8 py-3 rounded-md font-semibold transition-all flex items-center gap-2">Save Configuration</button>
       </section>
     </div>
   );
@@ -423,23 +416,21 @@ function DesignTab({ systemSettings, toast, revalidator }: any) {
     if (res.ok) { revalidator.revalidate(); toast({ title: "Design saved! Reload to see changes." }); }
   };
 
-  const inputCls = "block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all";
+  const inputCls = "block w-full px-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-background text-foreground placeholder:text-muted-foreground/80 text-sm transition-all";
 
   return (
     <div className="mt-6 space-y-8 max-w-3xl">
       {/* Layout picker */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card">
+      <section className="bg-card border border-border rounded-lg p-8">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Dashboard Layout</h3>
-          <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded">Visual Config</span>
+          <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Dashboard Layout</h3>
         </div>
-        <div className="flex items-center justify-between mb-6 p-4 bg-white/[0.03] border border-white/5 rounded-xl">
-          <div><p className="text-sm font-medium text-white">User-Controlled Layout</p><p className="text-xs text-gray-500">Let each user pick their own dashboard layout</p></div>
-          <Switch checked={userControlledLayout} onCheckedChange={setUserControlledLayout} />
+        <div className="flex items-center justify-between mb-6 p-4 bg-white/[0.03] border border-border rounded-md">
+          <div><p className="text-sm font-medium text-foreground">User-Controlled Layout</p><p className="text-xs text-muted-foreground">Let each user pick their own dashboard layout</p></div>
+          <Switch aria-label="Let each user pick their own layout" checked={userControlledLayout} onCheckedChange={setUserControlledLayout} />
         </div>
         {userControlledLayout && (
-          <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center gap-2">
-            <Icon name="info" className="text-yellow-400 text-lg shrink-0" />
+          <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md flex items-center gap-2">
             <p className="text-xs text-yellow-400/80">Users control their own layout. The selection below is the default for new users.</p>
           </div>
         )}
@@ -448,14 +439,13 @@ function DesignTab({ systemSettings, toast, revalidator }: any) {
             <label key={l.id} className="cursor-pointer group relative">
               <input type="radio" name="layout" className="peer sr-only" checked={layout === l.id} onChange={() => setLayout(l.id)} />
               <div className={cn(
-                "bg-[#1a1a1a] border rounded-2xl p-6 flex flex-col items-center justify-center gap-4 transition-all h-48 relative overflow-hidden",
-                layout === l.id ? "border-primary ring-1 ring-primary/50 shadow-glow-primary" : "border-white/10 hover:border-gray-600"
+                "bg-card border rounded-lg p-6 flex flex-col items-center justify-center gap-4 transition-all h-48 relative overflow-hidden",
+                layout === l.id ? "border-primary ring-1 ring-primary/50" : "border-border hover:border-[var(--control-border)]"
               )}>
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 pointer-events-none" />
-                <Icon name={l.icon} className={cn("text-5xl relative z-10", layout === l.id ? "text-primary" : "text-gray-500")} />
+                
                 <div className="text-center relative z-10">
-                  <span className={cn("block font-bold", layout === l.id ? "text-primary" : "text-white")}>{l.label}</span>
-                  <span className="text-xs text-gray-500 mt-1">{l.desc}</span>
+                  <span className={cn("block font-semibold", layout === l.id ? "text-primary" : "text-foreground")}>{l.label}</span>
+                  <span className="text-xs text-muted-foreground mt-1">{l.desc}</span>
                 </div>
               </div>
               {layout === l.id && <div className="absolute top-4 right-4 text-primary z-20">✓</div>}
@@ -465,19 +455,18 @@ function DesignTab({ systemSettings, toast, revalidator }: any) {
       </section>
 
       {/* Branding */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Background Pattern</h3>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Background Pattern</h3>
         <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
           {patterns.map((p) => (
             <label key={p.id} className="cursor-pointer group relative">
               <input type="radio" name="bgPattern" className="peer sr-only" checked={bgPattern === p.id} onChange={() => setBgPattern(p.id)} />
               <div className={cn(
-                "bg-[#1a1a1a] border rounded-xl p-4 flex flex-col items-center justify-center gap-3 transition-all h-28 relative overflow-hidden",
-                bgPattern === p.id ? "border-primary ring-1 ring-primary/50 shadow-glow-primary" : "border-white/10 hover:border-gray-600"
+                "bg-card border rounded-md p-4 flex flex-col items-center justify-center gap-3 transition-all h-28 relative overflow-hidden",
+                bgPattern === p.id ? "border-primary ring-1 ring-primary/50" : "border-border hover:border-[var(--control-border)]"
               )}>
                 <div className={cn("absolute inset-0 opacity-30", `bg-pattern-${p.id}`)} />
-                <Icon name={p.icon} className={cn("text-3xl relative z-10", bgPattern === p.id ? "text-primary" : "text-gray-500")} />
-                <span className={cn("text-sm font-medium relative z-10", bgPattern === p.id ? "text-primary" : "text-gray-400")}>{p.label}</span>
+                <span className={cn("text-sm font-medium relative z-10", bgPattern === p.id ? "text-primary" : "text-muted-foreground")}>{p.label}</span>
               </div>
             </label>
           ))}
@@ -485,24 +474,23 @@ function DesignTab({ systemSettings, toast, revalidator }: any) {
       </section>
 
       {/* Branding & Assets */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Branding & Assets</h3>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Branding & Assets</h3>
         <div>
-          <label className="text-sm font-medium text-gray-400 mb-3 block">Application Logo</label>
+          <label className="text-sm font-medium text-muted-foreground mb-3 block">Application Logo</label>
           <div className="flex items-start gap-4">
             {logoUrl && (
-              <div className="w-20 h-20 rounded-xl bg-[#1a1a1a] border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-20 h-20 rounded-md bg-card border border-border flex items-center justify-center overflow-hidden shrink-0">
                 <img src={logoUrl.startsWith("/api/logo") ? `${logoUrl}?t=${Date.now()}` : logoUrl} alt="Logo preview" className="w-full h-full object-contain p-1" />
               </div>
             )}
-            <label className="w-20 h-20 rounded-xl bg-[#1a1a1a] border border-dashed border-gray-600 flex flex-col items-center justify-center text-gray-500 hover:border-primary hover:text-primary transition-colors cursor-pointer shrink-0">
-              <Icon name="cloud_upload" className="text-2xl mb-1" />
-              <span className="text-[10px] uppercase font-bold">{uploading ? "..." : "Upload"}</span>
+            <label className="w-20 h-20 rounded-md bg-card border border-dashed border-gray-600 flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer shrink-0">
+              <span className="text-[10px] font-semibold">{uploading ? "..." : "Upload"}</span>
               <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploading} />
             </label>
             <div className="flex-1 space-y-3">
-              <input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className={inputCls} placeholder="https://example.com/logo.png" />
-              <p className="text-xs text-gray-500">Recommended: 512x512px. Supports PNG, SVG, JPG. Leave empty for default.</p>
+              <input aria-label="Application logo URL" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className={inputCls} placeholder="https://example.com/logo.png" />
+              <p className="text-xs text-muted-foreground">Recommended: 512x512px. Supports PNG, SVG, JPG. Leave empty for default.</p>
               {logoUrl && <button onClick={() => setLogoUrl("")} className="text-xs text-red-400 hover:underline">Remove logo</button>}
             </div>
           </div>
@@ -510,36 +498,34 @@ function DesignTab({ systemSettings, toast, revalidator }: any) {
       </section>
 
       {/* Colors */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-        <h3 className="text-xl font-bold text-white flex items-center gap-2 relative z-10"><span className="w-1 h-6 bg-primary rounded-full" /> Color Theme</h3>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6 relative overflow-hidden">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2 relative z-10">Color Theme</h3>
         <div className="relative z-10">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Primary Color</label>
+            <label className="text-sm font-medium text-foreground">Primary Color</label>
             <div className="flex items-center gap-3">
-              <label className="relative w-10 h-10 rounded-lg border border-white/10 shrink-0 cursor-pointer overflow-hidden group" style={{ backgroundColor: primaryColor, boxShadow: `0 0 15px ${primaryColor}40` }}>
-                <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+              <label className="relative w-10 h-10 rounded-lg border border-border shrink-0 cursor-pointer overflow-hidden group" style={{ backgroundColor: primaryColor, boxShadow: `0 0 15px ${primaryColor}40` }}>
+                <input type="color" aria-label="Primary color picker" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                  <Icon name="colorize" className="text-white text-sm" />
                 </div>
               </label>
-              <input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className={inputCls + " w-32 font-mono"} />
+              <input aria-label="Primary color hex value" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className={inputCls + " w-32 font-mono"} />
             </div>
           </div>
         </div>
         {/* Live preview */}
-        <div className="bg-[#0a0a0a] rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center gap-4 relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-          <div className="text-xs text-gray-500 absolute top-3 left-3 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Live Preview</div>
-          <button className="relative text-white px-8 py-3 rounded-lg font-bold shadow-lg transition-all overflow-hidden" style={{ backgroundColor: primaryColor }}>
+        <div className="bg-background rounded-md border border-[var(--control-border)] p-6 flex flex-col items-center justify-center gap-4 relative overflow-hidden">
+          
+          <div className="text-xs text-muted-foreground absolute top-3 left-3 flex items-center gap-1">Preview</div>
+          <button className="relative text-foreground px-8 py-3 rounded-lg font-semibold transition-all overflow-hidden" style={{ backgroundColor: primaryColor }}>
             <span className="relative z-10">Example Button</span>
           </button>
           <div className="flex gap-3">
             <span className="px-3 py-1 rounded-full text-xs font-semibold border" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor, borderColor: `${primaryColor}30` }}>Badge</span>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700">Inactive</span>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-muted-foreground border border-gray-700">Inactive</span>
           </div>
           <div className="w-full max-w-[200px]">
-            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
               <div className="h-full w-2/3 rounded-full" style={{ backgroundColor: primaryColor, boxShadow: `0 0 10px ${primaryColor}80` }} />
             </div>
           </div>
@@ -547,8 +533,8 @@ function DesignTab({ systemSettings, toast, revalidator }: any) {
       </section>
 
       <div className="flex items-center gap-4 pb-12">
-        <button onClick={save} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-8 py-3.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-105 flex items-center gap-2">Save Configuration</button>
-        <button className="text-gray-400 hover:text-white px-6 py-3.5 rounded-xl font-medium border border-transparent hover:border-white/10 transition-all">Reset to Defaults</button>
+        <button onClick={save} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-8 py-3.5 rounded-md font-semibold transition-all flex items-center gap-2">Save Configuration</button>
+        <button className="text-muted-foreground hover:text-foreground px-6 py-3.5 rounded-md font-medium border border-transparent hover:border-border transition-all">Reset to Defaults</button>
       </div>
     </div>
   );
@@ -573,10 +559,10 @@ function AuditTab({ toast }: any) {
 
   return (
     <div className="mt-6 space-y-6">
-      <div className="bg-[#141414] border border-white/5 rounded-2xl shadow-glow-card overflow-hidden">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         <table className="w-full text-left">
           <thead>
-            <tr className="bg-white/5 border-b border-white/10 text-xs font-semibold uppercase text-gray-400 tracking-wider">
+            <tr className="bg-white/5 border-b border-border text-xs font-semibold text-muted-foreground">
               <th className="px-6 py-4">Action</th>
               <th className="px-6 py-4">User</th>
               <th className="px-6 py-4">Details</th>
@@ -586,26 +572,26 @@ function AuditTab({ toast }: any) {
           </thead>
           <tbody className="divide-y divide-white/5">
             {loading ? (
-              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading...</td></tr>
+              <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">Loading...</td></tr>
             ) : logs.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No audit logs yet</td></tr>
+              <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">No audit logs yet</td></tr>
             ) : logs.map((log: any) => (
               <tr key={log.id} className="hover:bg-white/[0.03] transition-colors">
-                <td className="px-6 py-3"><span className={cn("text-sm font-medium", actionColors[log.action] || "text-gray-300")}>{log.action}</span></td>
-                <td className="px-6 py-3 text-sm text-gray-300">{log.username || "system"}</td>
-                <td className="px-6 py-3 text-sm text-gray-500 truncate max-w-[200px]">{log.details || "-"}</td>
-                <td className="px-6 py-3 text-xs text-gray-600 font-mono">{log.ip_address || "-"}</td>
-                <td className="px-6 py-3 text-xs text-gray-500">{log.created_at ? new Date(log.created_at).toLocaleString() : "-"}</td>
+                <td className="px-6 py-3"><span className={cn("text-sm font-medium", actionColors[log.action] || "text-foreground")}>{log.action}</span></td>
+                <td className="px-6 py-3 text-sm text-foreground">{log.username || "system"}</td>
+                <td className="px-6 py-3 text-sm text-muted-foreground truncate max-w-[200px]">{log.details || "-"}</td>
+                <td className="px-6 py-3 text-xs text-muted-foreground font-mono">{log.ip_address || "-"}</td>
+                <td className="px-6 py-3 text-xs text-muted-foreground">{log.created_at ? new Date(log.created_at).toLocaleString() : "-"}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between bg-white/[0.02]">
+        <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-white/[0.02]">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            className="px-3 py-1.5 text-xs text-gray-400 border border-white/10 rounded-lg hover:bg-white/5 disabled:opacity-30">Previous</button>
-          <span className="text-xs text-gray-500">Page {page}</span>
+            className="px-3 py-1.5 text-xs text-muted-foreground border border-border rounded-lg hover:bg-white/5 disabled:opacity-30">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page}</span>
           <button onClick={() => setPage(p => p + 1)} disabled={logs.length < 50}
-            className="px-3 py-1.5 text-xs text-gray-400 border border-white/10 rounded-lg hover:bg-white/5 disabled:opacity-30">Next</button>
+            className="px-3 py-1.5 text-xs text-muted-foreground border border-border rounded-lg hover:bg-white/5 disabled:opacity-30">Next</button>
         </div>
       </div>
     </div>
@@ -652,31 +638,31 @@ function WebhooksTab({ toast }: any) {
     setWebhooks(prev => prev.map(w => w.id === id ? { ...w, is_active: active ? 1 : 0 } : w));
   };
 
-  const inputCls = "block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary text-sm";
+  const inputCls = "block w-full px-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-background text-foreground placeholder:text-muted-foreground/80 text-sm";
 
   return (
     <div className="mt-6 max-w-xl space-y-6">
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Create Webhook</h3>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Create Webhook</h3>
         <div className="space-y-4">
-          <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Name</label><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Discord notifications" /></div>
-          <div className="space-y-2"><label className="text-sm font-medium text-gray-400">URL</label><input value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls} placeholder="https://discord.com/api/webhooks/..." /></div>
-          <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Events (comma-separated)</label><input value={events} onChange={(e) => setEvents(e.target.value)} className={inputCls} placeholder="upload,delete,login,signup" /><p className="text-xs text-gray-600">Available: upload, delete, login, signup, user.create, user.delete, * (all)</p></div>
-          <button onClick={create} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-6 py-2.5 rounded-xl font-bold shadow-glow-primary transition-all">Create Webhook</button>
+          <div className="space-y-2"><label htmlFor="ad-name-15" className="text-sm font-medium text-muted-foreground">Name</label><input id="ad-name-15" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Discord notifications" /></div>
+          <div className="space-y-2"><label htmlFor="ad-url-16" className="text-sm font-medium text-muted-foreground">URL</label><input id="ad-url-16" value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls} placeholder="https://discord.com/api/webhooks/..." /></div>
+          <div className="space-y-2"><label htmlFor="ad-events-comma-separated-17" className="text-sm font-medium text-muted-foreground">Events (comma-separated)</label><input id="ad-events-comma-separated-17" value={events} onChange={(e) => setEvents(e.target.value)} className={inputCls} placeholder="upload,delete,login,signup" /><p className="text-xs text-muted-foreground">Available: upload, delete, login, signup, user.create, user.delete, * (all)</p></div>
+          <button onClick={create} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-6 py-2.5 rounded-md font-semibold transition-all">Create Webhook</button>
         </div>
       </section>
       {webhooks.length > 0 && (
         <section className="space-y-3">
           {webhooks.map((w: any) => (
-            <div key={w.id} className="bg-[#141414] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+            <div key={w.id} className="bg-card border border-border rounded-md p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white">{w.name}</p>
-                <p className="text-xs text-gray-500 truncate max-w-[300px]">{w.url}</p>
-                <p className="text-xs text-gray-600 mt-1">Events: {w.events}</p>
+                <p className="text-sm font-medium text-foreground">{w.name}</p>
+                <p className="text-xs text-muted-foreground truncate max-w-[300px]">{w.url}</p>
+                <p className="text-xs text-muted-foreground mt-1">Events: {w.events}</p>
               </div>
               <div className="flex items-center gap-2">
-                <Switch checked={w.is_active === 1} onCheckedChange={(v) => toggle(w.id, v)} />
-                <button onClick={() => remove(w.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Icon name="delete" /></button>
+                <Switch aria-label={`Webhook ${w.name || w.url} active`} checked={w.is_active === 1} onCheckedChange={(v) => toggle(w.id, v)} />
+                <button onClick={() => remove(w.id)} className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400">Delete</button>
               </div>
             </div>
           ))}
@@ -722,19 +708,19 @@ function InvitesTab({ toast, systemSettings, users, revalidator }: any) {
     toast({ title: "Invite deleted" });
   };
 
-  const inputCls = "block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary text-sm";
+  const inputCls = "block w-full px-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-background text-foreground placeholder:text-muted-foreground/80 text-sm";
 
   return (
     <div className="mt-6 max-w-xl space-y-6">
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> Create Invite</h3>
-        <p className="text-sm text-gray-500 -mt-4">Invite links allow users to register even when registration is disabled.</p>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">Create Invite</h3>
+        <p className="text-sm text-muted-foreground -mt-4">Invite links allow users to register even when registration is disabled.</p>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Max Uses</label><input type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className={inputCls} /></div>
-          <div className="space-y-2"><label className="text-sm font-medium text-gray-400">Expires (hours)</label><input type="number" value={expiresHours} onChange={(e) => setExpiresHours(e.target.value)} className={inputCls} placeholder="Leave empty for no expiry" /></div>
+          <div className="space-y-2"><label htmlFor="ad-max-uses-18" className="text-sm font-medium text-muted-foreground">Max Uses</label><input id="ad-max-uses-18" type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className={inputCls} /></div>
+          <div className="space-y-2"><label htmlFor="ad-expires-hours-19" className="text-sm font-medium text-muted-foreground">Expires (hours)</label><input id="ad-expires-hours-19" type="number" value={expiresHours} onChange={(e) => setExpiresHours(e.target.value)} className={inputCls} placeholder="Leave empty for no expiry" /></div>
         </div>
-        <button onClick={create} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-6 py-2.5 rounded-xl font-bold shadow-glow-primary transition-all flex items-center gap-2">
-          <Icon name="link" className="text-lg" /> Generate Invite Link
+        <button onClick={create} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-6 py-2.5 rounded-md font-semibold transition-all flex items-center gap-2">
+          Generate Invite Link
         </button>
       </section>
       {invites.length > 0 && (
@@ -743,18 +729,18 @@ function InvitesTab({ toast, systemSettings, users, revalidator }: any) {
             const expired = inv.expires_at && new Date(inv.expires_at) < new Date();
             const full = inv.uses >= inv.max_uses;
             return (
-              <div key={inv.id} className={cn("bg-[#141414] border border-white/5 rounded-xl p-4 flex items-center justify-between", (expired || full) && "opacity-50")}>
+              <div key={inv.id} className={cn("bg-card border border-border rounded-md p-4 flex items-center justify-between", (expired || full) && "opacity-50")}>
                 <div>
-                  <p className="text-sm font-mono text-white">{inv.code}</p>
-                  <p className="text-xs text-gray-500">{inv.uses}/{inv.max_uses} uses{inv.created_by_name && ` • by ${inv.created_by_name}`}{inv.used_by_name && ` • used by ${inv.used_by_name}`}</p>
+                  <p className="text-sm font-mono text-foreground">{inv.code}</p>
+                  <p className="text-xs text-muted-foreground">{inv.uses}/{inv.max_uses} uses{inv.created_by_name && ` • by ${inv.created_by_name}`}{inv.used_by_name && ` • used by ${inv.used_by_name}`}</p>
                   {expired && <p className="text-xs text-red-400">Expired</p>}
                   {full && !expired && <p className="text-xs text-yellow-400">Fully used</p>}
-                  {inv.expires_at && !expired && <p className="text-xs text-gray-600">Expires: {new Date(inv.expires_at).toLocaleString()}</p>}
+                  {inv.expires_at && !expired && <p className="text-xs text-muted-foreground">Expires: {new Date(inv.expires_at).toLocaleString()}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => { const base = systemSettings?.base_url || window.location.origin; navigator.clipboard.writeText(`${base}/auth/sign-up?invite=${inv.code}`); toast({ title: "Link copied!" }); }}
-                    className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"><Icon name="content_copy" /></button>
-                  <button onClick={() => remove(inv.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Icon name="delete" /></button>
+                    className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground">Copy</button>
+                  <button onClick={() => remove(inv.id)} className="min-h-9 rounded-md px-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400">Delete</button>
                 </div>
               </div>
             );
@@ -763,12 +749,12 @@ function InvitesTab({ toast, systemSettings, users, revalidator }: any) {
       )}
 
       {/* Per-user invite quotas */}
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-primary rounded-full" /> User Invite Quotas</h3>
-        <p className="text-sm text-gray-500 -mt-4">Give users their own invite allowance. They can generate invites from their settings page.</p>
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">User Invite Quotas</h3>
+        <p className="text-sm text-muted-foreground -mt-4">Give users their own invite allowance. They can generate invites from their settings page.</p>
         
         <div className="flex items-center gap-3">
-          <input type="number" value={bulkQuota} onChange={(e) => setBulkQuota(e.target.value)} className={inputCls + " w-24"} min="0" />
+          <input type="number" aria-label="Invite quota for all users" value={bulkQuota} onChange={(e) => setBulkQuota(e.target.value)} className={inputCls + " w-24"} min="0" />
           <button onClick={async () => {
             const quota = parseInt(bulkQuota) || 0;
             for (const u of users) {
@@ -776,25 +762,25 @@ function InvitesTab({ toast, systemSettings, users, revalidator }: any) {
             }
             revalidator.revalidate();
             toast({ title: `Set ${quota} invites for all users` });
-          }} className="bg-primary hover:bg-[var(--primary-hover)] text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-glow-primary flex items-center gap-2">
-            <Icon name="group" className="text-lg" /> Set for All Users
+          }} className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
+            Set for All Users
           </button>
         </div>
 
         <div className="space-y-2">
           {users.map((u: any) => (
-            <div key={u.id} className="flex items-center justify-between p-3 bg-white/[0.03] border border-white/5 rounded-xl">
+            <div key={u.id} className="flex items-center justify-between p-3 bg-white/[0.03] border border-border rounded-md">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
                   <img alt="" className="w-full h-full object-cover" src={getAvatarUrl(u.username || u.email, 32, u.avatar_url)} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{u.username || u.email}</p>
-                  <p className="text-xs text-gray-500">{u.invites_used || 0} / {u.invite_quota || 0} used</p>
+                  <p className="text-sm font-medium text-foreground">{u.username || u.email}</p>
+                  <p className="text-xs text-muted-foreground">{u.invites_used || 0} / {u.invite_quota || 0} used</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <input type="number" min="0" className="w-16 px-2 py-1.5 text-sm text-center border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+                <input type="number" aria-label="Invite quota" min="0" className="w-16 px-2 py-1.5 text-sm text-center border border-[var(--control-border)] rounded-lg bg-background text-foreground"
                   defaultValue={u.invite_quota || 0}
                   onBlur={async (e) => {
                     const val = parseInt(e.target.value) || 0;
@@ -807,8 +793,7 @@ function InvitesTab({ toast, systemSettings, users, revalidator }: any) {
                   await fetch(`/api/admin/users/${u.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(getCsrfToken() ? { "X-CSRF-Token": getCsrfToken()! } : {}) }, body: JSON.stringify({ invites_used: 0 }) });
                   revalidator.revalidate();
                   toast({ title: `Reset invites for ${u.username || u.email}` });
-                }} className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition-all" title="Reset used count">
-                  <Icon name="restart_alt" className="text-lg" />
+                }} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all" title="Reset used count">
                 </button>
               </div>
             </div>
@@ -853,7 +838,7 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
   }
 
   if (!data) {
-    return <div className="mt-6 text-center py-20 text-gray-500">Failed to load analytics data.</div>;
+    return <div className="mt-6 text-center py-20 text-muted-foreground">Failed to load analytics data.</div>;
   }
 
   const { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = rc;
@@ -912,8 +897,8 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 text-xs shadow-lg">
-        <p className="text-gray-400 mb-1">{label}</p>
+      <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs">
+        <p className="text-muted-foreground mb-1">{label}</p>
         {payload.map((p: any, i: number) => (
           <p key={i} style={{ color: p.color }} className="font-medium">
             {p.name}: {p.name === "Storage" ? formatFileSize(p.value) : p.value}
@@ -927,14 +912,14 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
   const rangeLabel = rangeLabels[range] || "This Month";
   const RangeDropdown = () => (
     <Select value={range} onValueChange={handleRangeChange}>
-      <SelectTrigger className="w-auto h-auto gap-1.5 px-2.5 py-1 text-xs bg-white/5 border-white/10 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
+      <SelectTrigger className="w-auto h-auto gap-1.5 px-2.5 py-1 text-xs bg-white/5 border-border text-muted-foreground rounded-lg hover:bg-white/10 hover:text-foreground transition-colors">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="bg-[#1a1a1a] border-white/10">
-        <SelectItem value="day" className="text-xs text-gray-300 focus:bg-white/10 focus:text-white">Today</SelectItem>
-        <SelectItem value="week" className="text-xs text-gray-300 focus:bg-white/10 focus:text-white">This Week</SelectItem>
-        <SelectItem value="month" className="text-xs text-gray-300 focus:bg-white/10 focus:text-white">This Month</SelectItem>
-        <SelectItem value="lifetime" className="text-xs text-gray-300 focus:bg-white/10 focus:text-white">All Time</SelectItem>
+      <SelectContent className="bg-card border-border">
+        <SelectItem value="day" className="text-xs text-foreground focus:bg-white/10 focus:text-foreground">Today</SelectItem>
+        <SelectItem value="week" className="text-xs text-foreground focus:bg-white/10 focus:text-foreground">This Week</SelectItem>
+        <SelectItem value="month" className="text-xs text-foreground focus:bg-white/10 focus:text-foreground">This Month</SelectItem>
+        <SelectItem value="lifetime" className="text-xs text-foreground focus:bg-white/10 focus:text-foreground">All Time</SelectItem>
       </SelectContent>
     </Select>
   );
@@ -958,10 +943,9 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
           { icon: "cloud_upload", label: "Total Uploads", value: String(totalUploadsCount), color: "text-blue-500" },
           { icon: "storage", label: "Storage Used", value: formatFileSize(totalStorageUsed), color: "text-purple-500" },
         ].map((stat) => (
-          <div key={stat.label} className="bg-[#141414]/50 backdrop-blur-md border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-primary/30 transition-all duration-300 shadow-glow-card">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Icon name={stat.icon} className={cn("text-6xl", stat.color)} /></div>
-            <div className="text-gray-400 text-sm font-medium mb-2">{stat.label}</div>
-            <div className="text-3xl font-bold text-white tracking-tight">{stat.value}</div>
+          <div key={stat.label} className="bg-card border border-border p-6 rounded-lg relative overflow-hidden group hover:border-primary/30 transition-all">
+            <div className="text-muted-foreground text-sm font-medium mb-2">{stat.label}</div>
+            <div className="text-3xl font-semibold text-foreground tracking-tight">{stat.value}</div>
           </div>
         ))}
       </div>
@@ -972,21 +956,20 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
           { icon: "cloud_upload", label: "Uploads", value: String(rangeUploads), color: "text-purple-500" },
           { icon: "storage", label: "Storage Added", value: formatFileSize(rangeStorage), color: "text-green-500" },
         ].map((stat) => (
-          <div key={stat.label} className="bg-[#141414]/50 backdrop-blur-md border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-primary/30 transition-all duration-300 shadow-glow-card">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Icon name={stat.icon} className={cn("text-6xl", stat.color)} /></div>
-            <div className="text-gray-400 text-sm font-medium mb-2">{stat.label}</div>
-            <div className="text-3xl font-bold text-white tracking-tight">{stat.value}</div>
-            <div className="absolute bottom-3 right-3"><span className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{rangeLabel}</span></div>
+          <div key={stat.label} className="bg-card border border-border p-6 rounded-lg relative overflow-hidden group hover:border-primary/30 transition-all">
+            <div className="text-muted-foreground text-sm font-medium mb-2">{stat.label}</div>
+            <div className="text-3xl font-semibold text-foreground tracking-tight">{stat.value}</div>
+            <div className="absolute bottom-3 right-3"><span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{rangeLabel}</span></div>
           </div>
         ))}
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card">
+        <div className="bg-card border border-border rounded-lg p-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2"><span className="w-1 h-5 bg-primary rounded-full" /> Uploads</h3>
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">Uploads</h3>
             <RangeDropdown />
           </div>
-          {uploadsPerDay.length === 0 ? <div className="flex items-center justify-center h-[280px] text-gray-500 text-sm">No data for this period</div> : (
+          {uploadsPerDay.length === 0 ? <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">No data for this period</div> : (
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={uploadsPerDay}>
                 <defs><linearGradient id="uploadGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f97316" stopOpacity={0.3} /><stop offset="95%" stopColor="#f97316" stopOpacity={0} /></linearGradient></defs>
@@ -999,12 +982,12 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
             </ResponsiveContainer>
           )}
         </div>
-        <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card">
+        <div className="bg-card border border-border rounded-lg p-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2"><span className="w-1 h-5 bg-blue-500 rounded-full" /> Storage Growth</h3>
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">Storage Growth</h3>
             <RangeDropdown />
           </div>
-          {uploadsPerDay.length === 0 ? <div className="flex items-center justify-center h-[280px] text-gray-500 text-sm">No data for this period</div> : (
+          {uploadsPerDay.length === 0 ? <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">No data for this period</div> : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={uploadsPerDay}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -1018,34 +1001,34 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
         </div>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card">
+        <div className="bg-card border border-border rounded-lg p-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2"><span className="w-1 h-5 bg-purple-500 rounded-full" /> Top Uploaders</h3>
-            <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{rangeLabel}</span>
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">Top Uploaders</h3>
+            <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{rangeLabel}</span>
           </div>
-          {topUploaders.length === 0 ? <p className="text-gray-500 text-sm">No upload data for this period.</p> : (
+          {topUploaders.length === 0 ? <p className="text-muted-foreground text-sm">No upload data for this period.</p> : (
             <div className="space-y-3">
               {topUploaders.map((u: any, i: number) => (
-                <div key={u.username} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                <div key={u.username} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: COLORS[i % COLORS.length] + "20", color: COLORS[i % COLORS.length] }}>{i + 1}</span>
-                    <span className="text-white font-medium text-sm">{u.username}</span>
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: COLORS[i % COLORS.length] + "20", color: COLORS[i % COLORS.length] }}>{i + 1}</span>
+                    <span className="text-foreground font-medium text-sm">{u.username}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-white text-sm font-medium">{u.count} files</span>
-                    <span className="text-gray-500 text-xs ml-2">({formatFileSize(u.size || 0)})</span>
+                    <span className="text-foreground text-sm font-medium">{u.count} files</span>
+                    <span className="text-muted-foreground text-xs ml-2">({formatFileSize(u.size || 0)})</span>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-        <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card">
+        <div className="bg-card border border-border rounded-lg p-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2"><span className="w-1 h-5 bg-green-500 rounded-full" /> File Types</h3>
-            <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{rangeLabel}</span>
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">File Types</h3>
+            <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{rangeLabel}</span>
           </div>
-          {pieData.length === 0 ? <p className="text-gray-500 text-sm">No upload data for this period.</p> : (
+          {pieData.length === 0 ? <p className="text-muted-foreground text-sm">No upload data for this period.</p> : (
             <div className="flex items-center gap-6">
               <ResponsiveContainer width="60%" height={220}>
                 <PieChart>
@@ -1059,8 +1042,8 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
                 {pieData.map((entry: any, i: number) => (
                   <div key={entry.name} className="flex items-center gap-2 text-sm">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="text-gray-400">{entry.name}</span>
-                    <span className="text-white font-medium ml-auto">{entry.value}</span>
+                    <span className="text-muted-foreground">{entry.name}</span>
+                    <span className="text-foreground font-medium ml-auto">{entry.value}</span>
                   </div>
                 ))}
               </div>
@@ -1114,15 +1097,15 @@ function SecurityTab({ systemSettings, toast, revalidator }: any) {
     else toast({ title: "Failed to save", variant: "destructive" });
   };
 
-  const inputCls = "block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all";
+  const inputCls = "block w-full px-4 py-2.5 border border-[var(--control-border)] rounded-lg bg-background text-foreground placeholder:text-muted-foreground/80 text-sm transition-all";
 
   return (
     <div className="mt-6 max-w-xl space-y-6">
-      <section className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          <span className="w-1 h-6 bg-primary rounded-full" /> CAPTCHA Protection
+      <section className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          CAPTCHA Protection
         </h3>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-muted-foreground">
           Protect forms from bots and abuse. Choose a CAPTCHA provider and configure where it should be enforced.
           API token requests (ShareX, etc.) bypass CAPTCHA automatically.
         </p>
@@ -1132,25 +1115,24 @@ function SecurityTab({ systemSettings, toast, revalidator }: any) {
           {providers.map((p) => (
             <button key={p.id} onClick={() => setProvider(p.id)}
               className={cn(
-                "p-4 rounded-xl border text-left transition-all",
+                "p-4 rounded-md border text-left transition-all",
                 provider === p.id
-                  ? "border-primary bg-primary/10 shadow-glow-primary"
-                  : "border-white/10 bg-[#0a0a0a] hover:border-white/20"
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-background hover:border-border"
               )}>
               <div className="flex items-center gap-3 mb-1">
-                <Icon name={p.icon} className={cn("text-xl", provider === p.id ? "text-primary" : "text-gray-500")} />
-                <span className={cn("font-bold text-sm", provider === p.id ? "text-white" : "text-gray-300")}>{p.label}</span>
+                <span className={cn("font-semibold text-sm", provider === p.id ? "text-foreground" : "text-foreground")}>{p.label}</span>
               </div>
-              <p className="text-xs text-gray-500">{p.desc}</p>
+              <p className="text-xs text-muted-foreground">{p.desc}</p>
             </button>
           ))}
         </div>
 
         {/* Keys */}
         {provider !== "none" && (
-          <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="space-y-4">
             {docsUrl[provider] && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Get your keys from{" "}
                 <a href={docsUrl[provider]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                   {provider === "recaptcha" ? "Google reCAPTCHA Admin" : provider === "turnstile" ? "Cloudflare Dashboard" : "hCaptcha Dashboard"}
@@ -1158,46 +1140,46 @@ function SecurityTab({ systemSettings, toast, revalidator }: any) {
               </p>
             )}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400">Site Key</label>
-              <input value={siteKey} onChange={(e) => setSiteKey(e.target.value)} className={inputCls} placeholder="Enter site key" />
+              <label htmlFor="ad-site-key-20" className="text-sm font-medium text-muted-foreground">Site Key</label>
+              <input id="ad-site-key-20" value={siteKey} onChange={(e) => setSiteKey(e.target.value)} className={inputCls} placeholder="Enter site key" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400">Secret Key</label>
-              <input type="password" value={secretKey} onChange={(e) => setSecretKey(e.target.value)} className={inputCls} placeholder="Enter secret key" />
+              <label htmlFor="ad-secret-key-21" className="text-sm font-medium text-muted-foreground">Secret Key</label>
+              <input id="ad-secret-key-21" type="password" value={secretKey} onChange={(e) => setSecretKey(e.target.value)} className={inputCls} placeholder="Enter secret key" />
             </div>
 
             <div className="h-px bg-white/5" />
 
             {/* Enforcement toggles */}
             <div className="space-y-4">
-              <p className="text-sm font-medium text-gray-300">Enforce CAPTCHA on:</p>
+              <p className="text-sm font-medium text-foreground">Enforce CAPTCHA on:</p>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-white">Login</p>
-                  <p className="text-xs text-gray-500">Protect against credential stuffing</p>
+                  <p className="text-sm text-foreground">Login</p>
+                  <p className="text-xs text-muted-foreground">Protect against credential stuffing</p>
                 </div>
-                <Switch checked={onLogin} onCheckedChange={setOnLogin} />
+                <Switch aria-label="Require CAPTCHA on login" checked={onLogin} onCheckedChange={setOnLogin} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-white">Sign Up</p>
-                  <p className="text-xs text-gray-500">Prevent automated account creation</p>
+                  <p className="text-sm text-foreground">Sign Up</p>
+                  <p className="text-xs text-muted-foreground">Prevent automated account creation</p>
                 </div>
-                <Switch checked={onSignup} onCheckedChange={setOnSignup} />
+                <Switch aria-label="Require CAPTCHA on sign-up" checked={onSignup} onCheckedChange={setOnSignup} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-white">File Upload</p>
-                  <p className="text-xs text-gray-500">Block automated uploads (API tokens bypass this)</p>
+                  <p className="text-sm text-foreground">File Upload</p>
+                  <p className="text-xs text-muted-foreground">Block automated uploads (API tokens bypass this)</p>
                 </div>
-                <Switch checked={onUpload} onCheckedChange={setOnUpload} />
+                <Switch aria-label="Require CAPTCHA on upload" checked={onUpload} onCheckedChange={setOnUpload} />
               </div>
             </div>
           </div>
         )}
 
         <button onClick={save}
-          className="bg-primary hover:bg-[var(--primary-hover)] text-white px-8 py-3 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-105 flex items-center gap-2">
+          className="bg-primary hover:bg-[var(--primary-hover)] text-primary-foreground px-8 py-3 rounded-md font-semibold transition-all flex items-center gap-2">
           Save Security Settings
         </button>
       </section>
@@ -1246,26 +1228,26 @@ function FeaturesTab({ toast }: any) {
 
   return (
     <div className="mt-6 space-y-4">
-      <p className="text-gray-400 text-sm mb-4">Enable or disable features globally. When a feature is enabled, you can also control whether regular members have access or only admins.</p>
+      <p className="text-muted-foreground text-sm mb-4">Enable or disable features globally. When a feature is enabled, you can also control whether regular members have access or only admins.</p>
       <div className="grid gap-3">
         {flags.map((flag: any) => (
-          <div key={flag.key} className="bg-[#141414] border border-white/5 rounded-xl p-5 flex items-center justify-between gap-4 hover:border-white/10 transition-colors">
+          <div key={flag.key} className="bg-card border border-border rounded-md p-5 flex items-center justify-between gap-4 hover:border-border transition-colors">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">{flag.label}</span>
+                <span className="text-foreground font-medium text-sm">{flag.label}</span>
                 {!flag.enabled && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-medium">OFF</span>}
                 {flag.enabled && !flag.members_enabled && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-medium">ADMIN ONLY</span>}
               </div>
-              <p className="text-gray-500 text-xs mt-0.5">{flag.description}</p>
+              <p className="text-muted-foreground text-xs mt-0.5">{flag.description}</p>
             </div>
             <div className="flex items-center gap-6 shrink-0">
               <div className="flex flex-col items-center gap-1">
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Enabled</span>
-                <Switch checked={!!flag.enabled} onCheckedChange={() => toggle(flag.key, "enabled", flag.enabled)} />
+                <span className="text-[10px] text-muted-foreground">Enabled</span>
+                <Switch aria-label={`${flag.label} enabled`} checked={!!flag.enabled} onCheckedChange={() => toggle(flag.key, "enabled", flag.enabled)} />
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Members</span>
-                <Switch checked={!!flag.members_enabled} disabled={!flag.enabled} onCheckedChange={() => toggle(flag.key, "members_enabled", flag.members_enabled)} />
+                <span className="text-[10px] text-muted-foreground">Members</span>
+                <Switch aria-label={`${flag.label} available to members`} checked={!!flag.members_enabled} disabled={!flag.enabled} onCheckedChange={() => toggle(flag.key, "members_enabled", flag.members_enabled)} />
               </div>
             </div>
           </div>

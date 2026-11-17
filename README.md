@@ -43,23 +43,37 @@ The installer will ask you how to expose RXShare:
 
 After install, open your browser and go to `/setup` to create your admin account and configure the instance.
 
-## Docker (manual)
+## Docker
 
-If you prefer to handle it yourself:
+The image is published on GitHub Container Registry for `amd64` and `arm64`. One command, nothing to build:
+
+```bash
+docker run -d --name rxshare --restart unless-stopped \
+  -p 6910:3000 -v rxshare-data:/app/data \
+  -e JWT_SECRET="$(openssl rand -hex 32)" \
+  ghcr.io/rexsystems/rxshare:latest
+```
+
+Open `http://localhost:6910/setup` to create the admin account. To update, pull the new image and recreate the container:
+
+```bash
+docker pull ghcr.io/rexsystems/rxshare:latest
+docker rm -f rxshare   # data lives in the rxshare-data volume
+# then run the command above again
+```
+
+Settings such as MySQL or S3 can be passed as environment variables instead of the wizard, see [`.env.example`](.env.example). The container rebuilds its `.env` on recreate, so env vars are the durable way to configure it.
+
+Prefer Compose?
 
 ```bash
 git clone https://github.com/rexsystems/RXShare.git
 cd RXShare
 cp .env.example .env        # edit .env with your secrets
-docker compose up -d --build
+docker compose pull && docker compose up -d
 ```
 
-For local-only access, change the port binding in `docker-compose.yml`:
-
-```yaml
-ports:
-  - "127.0.0.1:6910:3000"
-```
+For local-only access, change the port binding in `docker-compose.yml` to `127.0.0.1:6910:3000`. To build from source instead of pulling, use `docker compose up -d --build`.
 
 ## Without Docker
 

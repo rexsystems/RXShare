@@ -5,8 +5,8 @@ import { query, queryOne, execute } from "~/.server/db";
 import { formatFileSize, formatRelativeDate, getMimeCategory } from "~/lib/utils-format";
 import { cn } from "~/lib/utils";
 import { useToast } from "~/components/ui/use-toast";
-import { Icon } from "~/components/Icon";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~/components/ui/dialog";
+import { btnPrimary, btnSecondary, controlClass, PasswordField, SelectField, TextAreaField, TextField } from "~/components/form";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
@@ -64,10 +64,6 @@ export default function UploadsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const perPage = 24;
-  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const typeRef = useRef<HTMLDivElement>(null);
-  const statusRef = useRef<HTMLDivElement>(null);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -114,16 +110,6 @@ export default function UploadsPage() {
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [search, filterType, filterStatus, activeFolder]);
-
-  // Close dropdowns on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (typeRef.current && !typeRef.current.contains(e.target as Node)) setTypeDropdownOpen(false);
-      if (statusRef.current && !statusRef.current.contains(e.target as Node)) setStatusDropdownOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const totalSize = uploads.reduce((acc: number, u: any) => acc + u.file_size, 0);
   const quota = settings?.disk_quota || 1073741824;
@@ -210,7 +196,7 @@ export default function UploadsPage() {
       if (e.key === "c" && focusIndex >= 0) { e.preventDefault(); copyLink(filteredUploads[focusIndex].file_name); }
       if (e.key === "/" || (e.key === "k" && (e.ctrlKey || e.metaKey))) {
         e.preventDefault();
-        document.querySelector<HTMLInputElement>('input[placeholder*="Search"]')?.focus();
+        document.getElementById("file-search")?.focus();
       }
     };
     document.addEventListener("keydown", handler);
@@ -272,10 +258,14 @@ export default function UploadsPage() {
     toast({ title: folderId ? "Moved to folder" : "Removed from folder" });
   };
 
+  const uploadMany = useCallback(async (files: FileList | File[]) => {
+    for (const f of Array.from(files)) await handleUpload(f);
+  }, [handleUpload]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setDragActive(false);
-    const file = e.dataTransfer.files[0]; if (file) handleUpload(file);
-  }, [handleUpload]);
+    if (e.dataTransfer.files.length) void uploadMany(e.dataTransfer.files);
+  }, [uploadMany]);
 
   const createShortLink = async (uploadId: string, fileName: string) => {
     const res = await fetch("/api/short-links", {
@@ -295,585 +285,321 @@ export default function UploadsPage() {
     if (res.ok) { revalidator.revalidate(); toast({ title: upload.is_public ? "Made private" : "Made public" }); }
   };
 
-  // Categorize storage — exact Stitch style
-  const imgSize = uploads.filter((u: any) => getMimeCategory(u.mime_type) === "image").reduce((a: number, u: any) => a + u.file_size, 0);
-  const vidSize = uploads.filter((u: any) => getMimeCategory(u.mime_type) === "video").reduce((a: number, u: any) => a + u.file_size, 0);
-  const docSize = uploads.filter((u: any) => ["text", "code", "pdf"].includes(getMimeCategory(u.mime_type))).reduce((a: number, u: any) => a + u.file_size, 0);
-  const otherSize = totalSize - imgSize - vidSize - docSize;
+  const ext = (name: string) => (name.includes(".") ? name.split(".").pop()!.toUpperCase().slice(0, 5) : "FILE");
+  const hasFilters = !!(search || filterType || filterStatus || activeFolder);
+  const allSelected = filteredUploads.length > 0 && selectedIds.size === filteredUploads.length;
+  const totalViews = uploads.reduce((a: number, u: any) => a + (u.views || 0), 0);
+  const totalDownloads = uploads.reduce((a: number, u: any) => a + (u.downloads || 0), 0);
+  const clearFilters = () => { setSearch(""); setFilterType(""); setFilterStatus(""); setActiveFolder(null); };
 
-  const getFileIconName = (mimeType: string) => {
-    const cat = getMimeCategory(mimeType);
-    if (cat === "image") return "image";
-    if (cat === "video") return "play_arrow";
-    if (cat === "audio") return "music_note";
-    if (cat === "text" || cat === "code") return "code_blocks";
-    if (cat === "pdf") return "picture_as_pdf";
-    return "folder_zip";
-  };
-  const getFileIconColor = (mimeType: string) => {
-    const cat = getMimeCategory(mimeType);
-    if (cat === "image") return "text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]";
-    if (cat === "video") return "text-purple-500 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]";
-    if (cat === "audio") return "text-pink-500 drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]";
-    if (cat === "text" || cat === "code") return "text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]";
-    if (cat === "pdf") return "text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]";
-    return "text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]";
-  };
+  const actionsMenu = (upload: any) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" aria-label={`Actions for ${upload.original_name}`} className="min-h-9 min-w-9 rounded-md border border-border bg-background px-2 text-sm hover:bg-white/5">
+          •••
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuItem onClick={() => copyLink(upload.file_name)}>Copy link</DropdownMenuItem>
+        {featureFlags.short_links && <DropdownMenuItem onClick={() => createShortLink(upload.id, upload.file_name)}>Copy short link</DropdownMenuItem>}
+        <DropdownMenuItem onClick={() => toggleVisibility(upload)}>{upload.is_public ? "Make private" : "Make public"}</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => { setSettingsFile(upload); setFilePassword(""); setFileExpiry(""); setFileDescription(upload.description || ""); }}>File settings</DropdownMenuItem>
+        {featureFlags.folders && <DropdownMenuItem onClick={() => setMoveToFolderFile(upload)}>{upload.folder_id ? "Change folder" : "Move to folder"}</DropdownMenuItem>}
+        <DropdownMenuItem onClick={() => deleteUpload(upload)} className="text-red-400 focus:text-red-300">Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const statusText = (u: any) => (
+    <span className="text-xs text-muted-foreground">{u.is_public ? "Public" : "Private"}{u.password_hash ? ", password" : ""}{u.expires_at ? ", expires" : ""}</span>
+  );
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <header className="flex items-center gap-2">
-        <div className="flex-1 max-w-xl">
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Icon name="search" className="text-gray-500 group-focus-within:text-primary transition-colors" />
-            </div>
-            <input className="block w-full pl-11 pr-3 py-3.5 border border-white/10 rounded-2xl leading-5 bg-[#0a0a0a]/60 backdrop-blur-xl text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.03)]"
-              placeholder="Search files, folders, or people..." type="text" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Files</h1>
+          <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+            <div className="flex gap-1.5"><dt>Files</dt><dd className="text-foreground">{uploads.length}</dd></div>
+            <div className="flex gap-1.5"><dt>Views</dt><dd className="text-foreground">{totalViews.toLocaleString()}</dd></div>
+            <div className="flex gap-1.5"><dt>Downloads</dt><dd className="text-foreground">{totalDownloads.toLocaleString()}</dd></div>
+          </dl>
         </div>
-        <button onClick={() => setShowFilters(!showFilters)}
-          className={cn("p-3 rounded-xl border transition-colors", showFilters || filterType || filterStatus ? "bg-primary/20 text-primary border-primary/30" : "bg-[#0a0a0a]/60 text-gray-500 border-white/10 hover:text-gray-300")}
-          title="Advanced filters">
-          <Icon name="tune" className="text-lg" />
-        </button>
-      </header>
-      {showFilters && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative" ref={typeRef}>
-            <button onClick={() => { setTypeDropdownOpen(v => !v); setStatusDropdownOpen(false); }}
-              className={cn("flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm font-medium transition-all",
-                filterType ? "bg-primary/20 text-primary border-primary/30" : "bg-[#0a0a0a] text-gray-400 border-white/10 hover:border-white/20")}>
-              <Icon name="filter_list" className="text-base" />
-              {filterType ? { image: "Images", video: "Video", audio: "Audio", text: "Text", code: "Code", pdf: "PDF", other: "Other" }[filterType] : "All Types"}
-              <Icon name="expand_more" className="text-base" />
-            </button>
-            {typeDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-44 bg-[#141414] border border-white/10 rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
-                {[{ v: "", l: "All Types" }, { v: "image", l: "Images" }, { v: "video", l: "Video" }, { v: "audio", l: "Audio" }, { v: "text", l: "Text" }, { v: "code", l: "Code" }, { v: "pdf", l: "PDF" }, { v: "other", l: "Other" }].map(o => (
-                  <button key={o.v} onClick={() => { setFilterType(o.v); setTypeDropdownOpen(false); }}
-                    className={cn("w-full text-left px-4 py-2 text-sm transition-colors", filterType === o.v ? "bg-primary/20 text-primary" : "text-gray-300 hover:bg-white/5 hover:text-white")}>
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-            )}
+        <div className="w-full sm:w-72">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Storage</span>
+            <span>{formatFileSize(totalSize)} of {formatFileSize(quota)}</span>
           </div>
-          <div className="relative" ref={statusRef}>
-            <button onClick={() => { setStatusDropdownOpen(v => !v); setTypeDropdownOpen(false); }}
-              className={cn("flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm font-medium transition-all",
-                filterStatus ? "bg-primary/20 text-primary border-primary/30" : "bg-[#0a0a0a] text-gray-400 border-white/10 hover:border-white/20")}>
-              <Icon name={filterStatus === "public" ? "visibility" : filterStatus === "private" ? "visibility_off" : "toggle_on"} className="text-base" />
-              {filterStatus ? (filterStatus === "public" ? "Public" : "Private") : "All Status"}
-              <Icon name="expand_more" className="text-base" />
-            </button>
-            {statusDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-40 bg-[#141414] border border-white/10 rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
-                {[{ v: "", l: "All Status" }, { v: "public", l: "Public" }, { v: "private", l: "Private" }].map(o => (
-                  <button key={o.v} onClick={() => { setFilterStatus(o.v); setStatusDropdownOpen(false); }}
-                    className={cn("w-full text-left px-4 py-2 text-sm transition-colors", filterStatus === o.v ? "bg-primary/20 text-primary" : "text-gray-300 hover:bg-white/5 hover:text-white")}>
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {(filterType || filterStatus) && (
-            <button onClick={() => { setFilterType(""); setFilterStatus(""); }}
-              className="px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/5 rounded-lg border border-white/10 transition-colors flex items-center gap-1">
-              <Icon name="close" className="text-sm" /> Clear filters
-            </button>
-          )}
-          <span className="text-xs text-gray-500 ml-auto">{filteredUploads.length} files</span>
-        </div>
-      )}
-      <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
-
-      {/* User analytics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { icon: "visibility", label: "Total Views", value: uploads.reduce((a: number, u: any) => a + (u.views || 0), 0).toLocaleString(), color: "text-primary" },
-          { icon: "download", label: "Total Downloads", value: uploads.reduce((a: number, u: any) => a + (u.downloads || 0), 0).toLocaleString(), color: "text-blue-500" },
-          { icon: "cloud_upload", label: "Total Files", value: String(uploads.length), color: "text-purple-500" },
-          { icon: "storage", label: "Storage Used", value: formatFileSize(totalSize), color: "text-green-500" },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-[#141414]/50 backdrop-blur-md border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-primary/30 transition-all duration-300 shadow-glow-card">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Icon name={stat.icon} className={cn("text-5xl", stat.color)} />
-            </div>
-            <div className="text-gray-400 text-xs font-medium mb-1">{stat.label}</div>
-            <div className="text-2xl font-bold text-white tracking-tight">{stat.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Storage + Upload zone — exact Stitch grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Storage overview */}
-        <div className="lg:col-span-2 glass-card p-1 rounded-2xl relative overflow-hidden group">
-          <div className="rounded-xl bg-[#0a0a0a]/40 p-6 h-full">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-white mb-1">Storage Overview</h2>
-                <p className="text-gray-500 text-sm">You have used <span className="text-white font-medium">{formatFileSize(totalSize)}</span> of your <span className="text-white font-medium">{formatFileSize(quota)}</span> plan</p>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">{uploads.length} files</span>
-            </div>
-          <div className="relative h-4 bg-gray-800 rounded-full overflow-hidden mb-6">
-            <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-[var(--primary-hover)] via-primary to-primary/70 rounded-full shadow-glow-primary" style={{ width: `${usagePercent}%` }} />
-          </div>
-          <div className="grid grid-cols-4 gap-4">
-            {[
-              { label: "Images", color: "bg-blue-500", size: imgSize, pct: totalSize > 0 ? (imgSize / totalSize) * 100 : 0 },
-              { label: "Video", color: "bg-purple-500", size: vidSize, pct: totalSize > 0 ? (vidSize / totalSize) * 100 : 0 },
-              { label: "Docs", color: "bg-emerald-500", size: docSize, pct: totalSize > 0 ? (docSize / totalSize) * 100 : 0 },
-              { label: "Other", color: "bg-gray-500", size: otherSize, pct: totalSize > 0 ? (otherSize / totalSize) * 100 : 0 },
-            ].map((cat) => (
-              <div key={cat.label} className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-                  <span className={cn("w-2 h-2 rounded-full", cat.color)} /> {cat.label}
-                </div>
-                <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                  <div className={cn("h-full rounded-full", cat.color)} style={{ width: `${cat.pct}%` }} />
-                </div>
-                <span className="text-xs font-mono text-gray-500">{formatFileSize(cat.size)}</span>
-              </div>
-            ))}
-          </div>
-          </div>
-        </div>
-
-        {/* Upload drop zone */}
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={cn(
-            "glass-card rounded-2xl p-1 relative overflow-hidden group cursor-pointer border-dashed border-2 transition-colors",
-            dragActive ? "border-primary/50" : "border-white/10 hover:border-primary/50"
-          )}
-        >
-          <div className={cn("absolute inset-0 bg-primary/5 opacity-0 transition-opacity", dragActive && "opacity-100")} />
-          <div className="h-full rounded-xl bg-[#0a0a0a]/50 flex flex-col items-center justify-center text-center p-6 relative z-10">
-            {uploading ? (
-              <div className="space-y-3">
-                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center shadow-glow-primary mx-auto">
-                  <Icon name="cloud_upload" className="text-3xl text-primary animate-pulse !leading-none" />
-                </div>
-                <p className="text-sm text-gray-400">Uploading... {Math.round(uploadProgress)}%</p>
-                <div className="h-1.5 w-32 bg-gray-800 rounded-full overflow-hidden mx-auto">
-                  <div className="h-full bg-primary rounded-full shadow-glow-primary transition-all" style={{ width: `${uploadProgress}%` }} />
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform group-hover:bg-primary/20 group-hover:shadow-glow-primary mx-auto">
-                  <Icon name="cloud_upload" className="text-3xl text-gray-400 group-hover:text-primary transition-colors !leading-none" />
-                </div>
-                <h3 className="font-bold text-white text-lg">Drop files here</h3>
-                <p className="text-sm text-gray-500 mt-1">or click to browse</p>
-                <span className="text-xs text-gray-600 mt-4 font-mono">Max file size: {formatFileSize(settings?.max_upload_size || 104857600)}</span>
-              </>
-            )}
+          <div
+            role="progressbar" aria-label="Storage used" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(usagePercent)}
+            className="mt-1.5 h-1.5 overflow-hidden rounded-sm bg-white/10"
+          >
+            <div className={cn("h-full rounded-sm", usagePercent > 90 ? "bg-red-400" : "bg-primary")} style={{ width: `${usagePercent}%` }} />
           </div>
         </div>
       </div>
 
-      {/* Folders */}
+      <input ref={fileInputRef} type="file" multiple className="hidden" aria-label="Choose files to upload" onChange={(e) => { if (e.target.files?.length) void uploadMany(e.target.files); e.target.value = ""; }} />
+
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={handleDrop}
+        className={cn("flex flex-col items-start justify-between gap-3 rounded-lg border border-dashed p-4 sm:flex-row sm:items-center", dragActive ? "border-primary bg-primary/5" : "border-[var(--control-border)]")}
+      >
+        {uploading ? (
+          <div role="status" className="w-full">
+            <p className="text-sm">Uploading… {Math.round(uploadProgress)}%</p>
+            <div role="progressbar" aria-label="Upload progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(uploadProgress)} className="mt-2 h-1.5 overflow-hidden rounded-sm bg-white/10">
+              <div className="h-full bg-primary" style={{ width: `${uploadProgress}%` }} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Drop files here, paste an image, or choose files. Up to {formatFileSize(settings?.max_upload_size || 104857600)} each.
+            </p>
+            <button type="button" className={btnPrimary} onClick={() => fileInputRef.current?.click()}>Choose files</button>
+          </>
+        )}
+      </div>
+
       {featureFlags.folders && (
-        <div className="flex items-center gap-3 overflow-x-auto pb-1">
-          <button onClick={() => setActiveFolder(null)}
-            className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shrink-0",
-              !activeFolder ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-400 border border-white/5 hover:bg-white/10")}>
-            <Icon name="folder_open" className="text-lg" /> All Files
+        <div role="group" aria-label="Folders" className="flex flex-wrap items-center gap-2">
+          <button type="button" aria-pressed={!activeFolder} onClick={() => setActiveFolder(null)}
+            className={cn("min-h-9 rounded-md border px-3 text-sm", !activeFolder ? "border-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground")}>
+            All files
           </button>
           {folders.map((f: any) => (
-            <div key={f.id} className="flex items-center gap-1 shrink-0">
-              <button onClick={() => setActiveFolder(f.id)}
-                className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                  activeFolder === f.id ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-400 border border-white/5 hover:bg-white/10")}>
-                <Icon name="folder" className="text-lg" /> {f.name}
-                <span className="text-xs opacity-60">({uploads.filter((u: any) => u.folder_id === f.id).length})</span>
+            <span key={f.id} className="inline-flex items-center">
+              <button type="button" aria-pressed={activeFolder === f.id} onClick={() => setActiveFolder(f.id)}
+                className={cn("min-h-9 rounded-l-md border px-3 text-sm", activeFolder === f.id ? "border-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground")}>
+                {f.name} <span className="text-muted-foreground">({uploads.filter((u: any) => u.folder_id === f.id).length})</span>
               </button>
-              <button onClick={() => deleteFolder(f.id)} className="p-1 text-gray-600 hover:text-red-400 rounded transition-colors" title="Delete folder">
-                <Icon name="close" className="text-sm" />
-              </button>
-            </div>
+              <button type="button" onClick={() => deleteFolder(f.id)} aria-label={`Delete folder ${f.name}`}
+                className="min-h-9 rounded-r-md border border-l-0 border-border px-2 text-sm text-muted-foreground hover:text-red-400">×</button>
+            </span>
           ))}
-          <button onClick={() => { setNewFolderDialogName(""); setShowNewFolderDialog(true); }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-white/5 text-gray-400 border border-dashed border-white/10 hover:bg-white/10 hover:text-white transition-all shrink-0">
-            <Icon name="create_new_folder" className="text-lg" /> New Folder
+          <button type="button" onClick={() => { setNewFolderDialogName(""); setShowNewFolderDialog(true); }} className="min-h-9 rounded-md border border-dashed border-[var(--control-border)] px-3 text-sm text-muted-foreground hover:text-foreground">
+            New folder
           </button>
         </div>
       )}
 
-      {/* Recent Files header */}
-      <div className="flex items-center justify-between glass-card rounded-2xl p-1">
-        <div className="flex items-center gap-3 px-5 py-3">
-          <h2 className="text-xl font-bold text-white">Recent Files</h2>
-          {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-xs text-gray-400">{selectedIds.size} selected</span>
-              {featureFlags.zip_download && <button onClick={downloadZip} disabled={zipping}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all disabled:opacity-50">
-                <Icon name="folder_zip" className="text-sm" /> {zipping ? "Zipping..." : "Download Zip"}
-              </button>}
-              <button onClick={() => setSelectedIds(new Set())}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                <Icon name="close" className="text-sm" /> Clear
-              </button>
-            </div>
-          )}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-48 flex-1 sm:max-w-sm">
+          <label htmlFor="file-search" className="sr-only">Search files</label>
+          <input id="file-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search files (press /)" className={controlClass} />
         </div>
-        <div className="flex items-center gap-2 mr-2">
-          <button onClick={selectAll}
-            className={cn("p-2 rounded-lg transition-colors text-sm", selectedIds.size === filteredUploads.length && filteredUploads.length > 0 ? "bg-primary/20 text-primary" : "text-gray-500 hover:text-gray-300 hover:bg-white/5")}>
-            <Icon name="select_all" className="text-lg" />
-          </button>
-          <div className="flex items-center gap-2 bg-[#0a0a0a]/60 p-1 rounded-xl border border-white/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-          <button onClick={() => setViewMode("grid")} className={cn("p-2 rounded-lg transition-colors", viewMode === "grid" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-gray-300 hover:bg-white/5")}>
-            <Icon name="grid_view" className="text-lg" />
-          </button>
-          <button onClick={() => setViewMode("list")} className={cn("p-2 rounded-lg transition-colors", viewMode === "list" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-gray-300 hover:bg-white/5")}>
-            <Icon name="list" className="text-lg" />
-          </button>
-          </div>
+        {featureFlags.advanced_search && (
+          <>
+            <label className="sr-only" htmlFor="filter-type">File type</label>
+            <select id="filter-type" value={filterType} onChange={(e) => setFilterType(e.target.value)} className={cn(controlClass, "w-auto")}>
+              <option value="">All types</option><option value="image">Images</option><option value="video">Video</option><option value="audio">Audio</option>
+              <option value="text">Text</option><option value="code">Code</option><option value="pdf">PDF</option><option value="other">Other</option>
+            </select>
+            <label className="sr-only" htmlFor="filter-status">Visibility</label>
+            <select id="filter-status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={cn(controlClass, "w-auto")}>
+              <option value="">Any visibility</option><option value="public">Public</option><option value="private">Private</option>
+            </select>
+          </>
+        )}
+        <div role="group" aria-label="Layout" className="ml-auto flex overflow-hidden rounded-md border border-[var(--control-border)]">
+          <button type="button" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} className={cn("min-h-11 px-3 text-sm sm:min-h-9", viewMode === "grid" ? "bg-white/10" : "text-muted-foreground hover:text-foreground")}>Grid</button>
+          <button type="button" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} className={cn("min-h-11 border-l border-[var(--control-border)] px-3 text-sm sm:min-h-9", viewMode === "list" ? "bg-white/10" : "text-muted-foreground hover:text-foreground")}>List</button>
         </div>
       </div>
 
-      {/* Files — exact Stitch card design */}
+      {selectedIds.size > 0 && (
+        <div role="status" className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-4 py-2 text-sm">
+          <span>{selectedIds.size} selected</span>
+          {featureFlags.zip_download && <button type="button" onClick={downloadZip} disabled={zipping} className="min-h-9 text-primary underline underline-offset-2 disabled:opacity-60">{zipping ? "Zipping…" : "Download as zip"}</button>}
+          <button type="button" onClick={() => setSelectedIds(new Set())} className="min-h-9 text-muted-foreground hover:text-foreground">Clear selection</button>
+        </div>
+      )}
+
       {filteredUploads.length === 0 ? (
-        <div className="text-center py-16">
-          <Icon name="cloud_upload" className="text-6xl text-gray-600 mb-3" />
-          <p className="text-gray-500 text-sm">No files yet. Upload something!</p>
+        <div className="rounded-lg border border-border px-6 py-14 text-center">
+          {uploads.length === 0 ? (
+            <>
+              <p className="font-medium">No files yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">Drop a file above, paste an image, or press U to choose one.</p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">No files match</p>
+              <p className="mt-1 text-sm text-muted-foreground">Nothing fits the current search or filters.</p>
+              {hasFilters && <button type="button" onClick={clearFilters} className="mt-3 min-h-11 text-sm text-primary underline underline-offset-2">Clear search and filters</button>}
+            </>
+          )}
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
-          {paginatedUploads.map((upload: any) => {
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {paginatedUploads.map((upload: any, i: number) => {
             const isImage = getMimeCategory(upload.mime_type) === "image";
-            const ext = upload.original_name.split(".").pop()?.toUpperCase() || "FILE";
+            const globalIndex = (page - 1) * perPage + i;
             return (
-              <div key={upload.id}
-                className={cn("glass-card rounded-2xl group relative overflow-hidden flex flex-col shadow-lg hover:-translate-y-1 cursor-pointer", selectedIds.has(upload.id) && "ring-2 ring-primary")}
-                onClick={() => setPreviewFile(upload)}>
-                {/* Selection checkbox */}
-                <div className="absolute top-3 left-3 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => toggleSelect(upload.id)}
-                    className={cn("w-5 h-5 rounded border flex items-center justify-center transition-all text-xs",
-                      selectedIds.has(upload.id) ? "bg-primary border-primary text-white" : "border-white/20 bg-black/40 backdrop-blur-md text-transparent hover:border-white/40")}>
-                    {selectedIds.has(upload.id) && <Icon name="check" className="text-xs" />}
-                  </button>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/40 text-white backdrop-blur-md border border-white/10">{ext}</span>
-                </div>
-                {/* Actions — exact Stitch: hidden, show on hover */}
-                <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-1.5 bg-black/60 hover:bg-primary text-white rounded-lg backdrop-blur-md transition-colors">
-                        <Icon name="more_horiz" className="text-sm" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-[#141414] border-white/10 rounded-xl shadow-2xl p-1">
-                      <DropdownMenuItem onClick={() => copyLink(upload.file_name)} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                        <Icon name="link" className="text-lg" /> Copy link
-                      </DropdownMenuItem>
-                      {featureFlags.short_links && <DropdownMenuItem onClick={() => createShortLink(upload.id, upload.file_name)} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                        <Icon name="link" className="text-lg" /> Short Link
-                      </DropdownMenuItem>}
-                      <DropdownMenuItem onClick={() => toggleVisibility(upload)} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                        <Icon name={upload.is_public ? "visibility_off" : "visibility"} className="text-lg" />
-                        {upload.is_public ? "Make private" : "Make public"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setSettingsFile(upload); setFilePassword(""); setFileExpiry(""); setFileDescription(upload.description || ""); }} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                        <Icon name="settings" className="text-lg" /> Settings
-                      </DropdownMenuItem>
-                      {featureFlags.folders && (
-                        <DropdownMenuItem onClick={() => setMoveToFolderFile(upload)} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                          <Icon name="folder" className="text-lg" /> {upload.folder_id ? "Change folder" : "Move to folder"}
-                        </DropdownMenuItem>
-                      )}
-                      <div className="h-px bg-white/5 my-1" />
-                      <DropdownMenuItem onClick={() => deleteUpload(upload)} className="flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg">
-                        <Icon name="delete" className="text-lg" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                {/* Thumbnail — exact Stitch */}
-                <div className="aspect-[4/3] w-full bg-gray-800 relative overflow-hidden">
-                  {isImage && upload.thumbnail_path ? (
-                    <img src={`/api/files/${upload.thumbnail_path}`} alt="" className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-                  ) : isImage ? (
-                    <img src={`/api/files/${upload.file_path}`} alt="" className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e] relative">
-                      <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-                      <Icon name={getFileIconName(upload.mime_type)} className={cn("text-6xl", getFileIconColor(upload.mime_type))} />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                {/* Info — exact Stitch */}
-                <div className="p-4 flex-1 flex flex-col bg-[#141414]/80 backdrop-blur-sm border-t border-white/5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-white font-medium truncate pr-4" title={upload.original_name}>{upload.original_name}</h3>
-                  </div>
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-xs text-gray-500">{formatFileSize(upload.file_size)}</span>
-                    {upload.is_public ? (
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]" />
-                        <span className="text-[10px] text-green-500 font-bold uppercase tracking-wide">Public</span>
-                      </div>
+              <li key={upload.id} className={cn("relative flex flex-col overflow-hidden rounded-lg border bg-card", selectedIds.has(upload.id) ? "border-primary" : "border-border", focusIndex === globalIndex && "outline outline-2 outline-primary")}>
+                <label className="absolute left-2 top-2 z-10 flex size-9 items-center justify-center rounded-md bg-background/90">
+                  <input type="checkbox" checked={selectedIds.has(upload.id)} onChange={() => toggleSelect(upload.id)} aria-label={`Select ${upload.original_name}`} className="size-4 accent-[var(--primary)]" />
+                </label>
+                <div className="absolute right-2 top-2 z-10">{actionsMenu(upload)}</div>
+                <button type="button" onClick={() => setPreviewFile(upload)} className="flex flex-1 flex-col text-left">
+                  <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-white/[0.04]">
+                    {isImage ? (
+                      <img src={`/api/files/${upload.thumbnail_path || upload.file_path}`} alt="" loading="lazy" width={300} height={225} className="h-full w-full object-contain" />
                     ) : (
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-500/10 border border-gray-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Private</span>
-                      </div>
+                      <span className="font-mono text-2xl text-muted-foreground">{ext(upload.original_name)}</span>
                     )}
                   </div>
-                </div>
-              </div>
+                  <div className="space-y-0.5 p-3">
+                    <p className="truncate text-sm font-medium" title={upload.original_name}>{upload.original_name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(upload.file_size)} · {formatRelativeDate(upload.created_at)}</p>
+                    {statusText(upload)}
+                  </div>
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       ) : (
-        /* List view — exact Stitch table style */
-        <div className="glass-card rounded-2xl p-1 shadow-glow-card overflow-hidden">
-          <div className="bg-[#0a0a0a]/40 rounded-xl overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-white/5 border-b border-white/10 text-xs font-semibold uppercase text-gray-400 tracking-wider">
-                <th className="px-3 py-5 w-10" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={selectAll}
-                    className={cn("w-5 h-5 rounded border flex items-center justify-center transition-all text-xs",
-                      selectedIds.size === filteredUploads.length && filteredUploads.length > 0 ? "bg-primary border-primary text-white" : "border-white/20 bg-transparent text-transparent hover:border-white/40")}>
-                    {selectedIds.size === filteredUploads.length && filteredUploads.length > 0 && <Icon name="check" className="text-xs" />}
-                  </button>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-border text-muted-foreground">
+              <tr>
+                <th scope="col" className="w-10 px-3 py-3">
+                  <input type="checkbox" checked={allSelected} onChange={selectAll} aria-label="Select all files" className="size-4 accent-[var(--primary)]" />
                 </th>
-                <th className="px-6 py-5">File</th>
-                <th className="px-6 py-5">Size</th>
-                <th className="px-6 py-5">Status</th>
-                <th className="px-6 py-5">Date</th>
-                <th className="px-6 py-5 text-right">Actions</th>
+                <th scope="col" className="px-3 py-3 font-medium">Name</th>
+                <th scope="col" className="px-3 py-3 font-medium">Size</th>
+                <th scope="col" className="px-3 py-3 font-medium">Visibility</th>
+                <th scope="col" className="px-3 py-3 font-medium">Uploaded</th>
+                <th scope="col" className="w-14 px-3 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
-              {paginatedUploads.map((upload: any) => (
-                <tr key={upload.id} className={cn("group hover:bg-white/[0.03] transition-colors duration-200 cursor-pointer", selectedIds.has(upload.id) && "bg-primary/5")} onClick={() => setPreviewFile(upload)}>
-                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => toggleSelect(upload.id)}
-                      className={cn("w-5 h-5 rounded border flex items-center justify-center transition-all text-xs",
-                        selectedIds.has(upload.id) ? "bg-primary border-primary text-white" : "border-white/20 bg-transparent text-transparent hover:border-white/40")}>
-                      {selectedIds.has(upload.id) && <Icon name="check" className="text-xs" />}
+            <tbody className="divide-y divide-border">
+              {paginatedUploads.map((upload: any, i: number) => (
+                <tr key={upload.id} className={cn(selectedIds.has(upload.id) && "bg-primary/5", focusIndex === (page - 1) * perPage + i && "outline outline-2 -outline-offset-2 outline-primary")}>
+                  <td className="px-3 py-2"><input type="checkbox" checked={selectedIds.has(upload.id)} onChange={() => toggleSelect(upload.id)} aria-label={`Select ${upload.original_name}`} className="size-4 accent-[var(--primary)]" /></td>
+                  <td className="max-w-xs px-3 py-2">
+                    <button type="button" onClick={() => setPreviewFile(upload)} className="block min-h-9 max-w-full text-left">
+                      <span className="block truncate font-medium">{upload.original_name}</span>
+                      <span className="block truncate font-mono text-xs text-muted-foreground">{upload.file_name}</span>
                     </button>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <Icon name={getFileIconName(upload.mime_type)} className={cn("text-2xl", getFileIconColor(upload.mime_type))} />
-                      <div>
-                        <div className="font-semibold text-white">{upload.original_name}</div>
-                        <div className="text-xs text-gray-500">{upload.file_name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">{formatFileSize(upload.file_size)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("w-1.5 h-1.5 rounded-full", upload.is_public ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-500")} />
-                      <span className="text-sm text-gray-300">{upload.is_public ? "Public" : "Private"}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-300">{formatRelativeDate(upload.created_at)}</td>
-                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all">
-                          <Icon name="more_vert" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-[#141414] border-white/10 rounded-xl shadow-2xl p-1">
-                        <DropdownMenuItem onClick={() => copyLink(upload.file_name)} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                          <Icon name="link" className="text-lg" /> Copy link
-                        </DropdownMenuItem>
-                        {featureFlags.short_links && <DropdownMenuItem onClick={() => createShortLink(upload.id, upload.file_name)} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                          <Icon name="link" className="text-lg" /> Short Link
-                        </DropdownMenuItem>}
-                        <DropdownMenuItem onClick={() => toggleVisibility(upload)} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                          <Icon name={upload.is_public ? "visibility_off" : "visibility"} className="text-lg" />
-                          {upload.is_public ? "Make private" : "Make public"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setSettingsFile(upload); setFilePassword(""); setFileExpiry(""); setFileDescription(upload.description || ""); }} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg">
-                          <Icon name="settings" className="text-lg" /> Settings
-                        </DropdownMenuItem>
-                        <div className="h-px bg-white/5 my-1" />
-                        <DropdownMenuItem onClick={() => deleteUpload(upload)} className="flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg">
-                          <Icon name="delete" className="text-lg" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatFileSize(upload.file_size)}</td>
+                  <td className="px-3 py-2">{upload.is_public ? "Public" : "Private"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatRelativeDate(upload.created_at)}</td>
+                  <td className="px-3 py-2 text-right">{actionsMenu(upload)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between bg-white/[0.02]">
-            <div className="text-xs text-gray-500">Showing <span className="text-white font-medium">{paginatedUploads.length}</span> of <span className="text-white font-medium">{filteredUploads.length}</span> files</div>
-          </div>
-          </div>
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pb-8">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-            <Icon name="chevron_left" className="text-lg" />
-          </button>
-          {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-            let p: number;
-            if (totalPages <= 7) p = i + 1;
-            else if (page <= 4) p = i + 1;
-            else if (page >= totalPages - 3) p = totalPages - 6 + i;
-            else p = page - 3 + i;
-            return (
-              <button key={p} onClick={() => setPage(p)}
-                className={cn("w-9 h-9 rounded-lg text-sm font-medium transition-all",
-                  page === p ? "bg-primary text-white shadow-glow-primary" : "text-gray-400 hover:text-white hover:bg-white/5 border border-white/10")}>
-                {p}
-              </button>
-            );
-          })}
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-            <Icon name="chevron_right" className="text-lg" />
-          </button>
+      {filteredUploads.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-6 text-sm text-muted-foreground">
+          <p>Showing {paginatedUploads.length} of {filteredUploads.length}</p>
+          {totalPages > 1 && (
+            <nav aria-label="Pagination" className="flex items-center gap-2">
+              <button type="button" className={btnSecondary} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</button>
+              <span aria-live="polite">Page {page} of {totalPages}</span>
+              <button type="button" className={btnSecondary} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</button>
+            </nav>
+          )}
         </div>
       )}
+      <p className="pb-4 text-xs text-muted-foreground">Shortcuts: / search, U upload, G grid, L list, J and K move, Enter open, X select, C copy link, Delete remove.</p>
 
-      {/* Preview dialog */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-auto bg-[#0f0f0f] border-white/10">
+        <DialogContent className="max-w-3xl">
           {previewFile && (
             <>
-              <DialogHeader><DialogTitle className="truncate text-white">{previewFile.original_name}</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <FilePreview upload={previewFile} />
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span>{formatFileSize(previewFile.file_size)}</span><span>•</span>
-                  <span>{formatRelativeDate(previewFile.created_at)}</span><span>•</span>
-                  <span>{previewFile.views} views</span>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setPreviewFile(null)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors">
-                    <Icon name="arrow_back" className="text-lg" /> Back
-                  </button>
-                  <a href={`/v/${previewFile.file_name}`} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors">
-                    <Icon name="open_in_new" className="text-lg" /> Open
-                  </a>
-                  <button onClick={() => copyLink(previewFile.file_name)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors">
-                    <Icon name="link" className="text-lg" /> Copy link
-                  </button>
-                  <a href={`/api/files/${previewFile.file_path}`} download={previewFile.original_name} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all">
-                    <Icon name="download" className="text-lg" /> Download
-                  </a>
-                </div>
+              <DialogHeader>
+                <DialogTitle className="truncate pr-8">{previewFile.original_name}</DialogTitle>
+                <DialogDescription>
+                  {formatFileSize(previewFile.file_size)} · {formatRelativeDate(previewFile.created_at)} · {previewFile.views} views
+                </DialogDescription>
+              </DialogHeader>
+              <FilePreview upload={previewFile} />
+              <div className="flex flex-wrap gap-2">
+                <a href={`/v/${previewFile.file_name}`} className={btnSecondary}>Open page</a>
+                <button type="button" onClick={() => copyLink(previewFile.file_name)} className={btnSecondary}>Copy link</button>
+                <a href={`/api/files/${previewFile.file_path}`} download={previewFile.original_name} className={btnPrimary}>Download</a>
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* File settings dialog (expiration, password, folder) */}
       <Dialog open={!!settingsFile} onOpenChange={() => setSettingsFile(null)}>
-        <DialogContent className="bg-[#141414] border-white/10 max-w-md">
-          <DialogHeader><DialogTitle className="text-white truncate">{settingsFile?.original_name}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">File settings</DialogTitle>
+            <DialogDescription className="truncate">{settingsFile?.original_name}</DialogDescription>
+          </DialogHeader>
           <div className="space-y-5">
-            {featureFlags.file_expiration && <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 flex items-center gap-2"><Icon name="timer" className="text-lg" /> Expiration</label>
-              <select value={fileExpiry} onChange={(e) => setFileExpiry(e.target.value)}
-                className="block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 focus:outline-none focus:ring-1 focus:ring-primary text-sm">
-                <option value="">No change</option>
-                <option value="1">1 hour</option>
-                <option value="24">24 hours</option>
-                <option value="168">7 days</option>
-                <option value="720">30 days</option>
-                <option value="0">Remove expiration</option>
-              </select>
-              {settingsFile?.expires_at && <p className="text-xs text-yellow-500">Currently expires: {new Date(settingsFile.expires_at).toLocaleString()}</p>}
-            </div>}
-            {featureFlags.password_protection && <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 flex items-center gap-2"><Icon name="lock" className="text-lg" /> Password Protection</label>
-              <input type="password" value={filePassword} onChange={(e) => setFilePassword(e.target.value)} placeholder={settingsFile?.password_hash ? "Change password (leave empty to keep)" : "Set password (optional)"}
-                className="block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary text-sm" />
-              {settingsFile?.password_hash && <p className="text-xs text-primary">This file is password protected</p>}
-            </div>}
-            {featureFlags.folders && folders.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400 flex items-center gap-2"><Icon name="folder" className="text-lg" /> Folder</label>
-                <select value={settingsFile?.folder_id || ""} onChange={(e) => moveToFolder(settingsFile.id, e.target.value || null)}
-                  className="block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 focus:outline-none focus:ring-1 focus:ring-primary text-sm">
-                  <option value="">No folder</option>
-                  {folders.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
+            {featureFlags.file_expiration && (
+              <div>
+                <SelectField fieldId="fs-expiry" label="Expiration" value={fileExpiry} onChange={setFileExpiry}
+                  options={[{ value: "", label: "No change" }, { value: "1", label: "1 hour" }, { value: "24", label: "24 hours" }, { value: "168", label: "7 days" }, { value: "720", label: "30 days" }, { value: "0", label: "Remove expiration" }]} />
+                {settingsFile?.expires_at && <p className="mt-1.5 text-xs text-muted-foreground">Currently expires {new Date(settingsFile.expires_at).toLocaleString()}.</p>}
               </div>
             )}
-            {featureFlags.file_notes && <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 flex items-center gap-2"><Icon name="notes" className="text-lg" /> Description</label>
-              <textarea value={fileDescription} onChange={(e) => setFileDescription(e.target.value)} placeholder="Add a note or description..."
-                className="block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary text-sm resize-none" rows={3} />
-            </div>}
+            {featureFlags.password_protection && (
+              <PasswordField fieldId="fs-password" label="Password" optional value={filePassword} onChange={setFilePassword}
+                placeholder={settingsFile?.password_hash ? "Type a new one to change it" : "No password"}
+                hint={settingsFile?.password_hash ? "This file is password protected. Leave empty to keep it." : undefined} />
+            )}
+            {featureFlags.folders && folders.length > 0 && (
+              <SelectField fieldId="fs-folder" label="Folder" value={settingsFile?.folder_id || ""} onChange={(v) => moveToFolder(settingsFile.id, v || null)}
+                options={[{ value: "", label: "No folder" }, ...folders.map((f: any) => ({ value: f.id, label: f.name }))]} />
+            )}
+            {featureFlags.file_notes && <TextAreaField fieldId="fs-notes" label="Description" optional value={fileDescription} onChange={setFileDescription} placeholder="A note shown with the file" />}
           </div>
-          <div className="flex justify-end gap-2 mt-2">
-            <button onClick={() => setSettingsFile(null)} className="px-4 py-2 text-sm text-gray-400 border border-white/10 rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-            <button onClick={saveFileSettings} className="px-4 py-2 text-sm text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all">Save</button>
+          <div className="flex justify-end gap-2">
+            <button type="button" className={btnSecondary} onClick={() => setSettingsFile(null)}>Cancel</button>
+            <button type="button" className={btnPrimary} onClick={saveFileSettings}>Save</button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* New Folder dialog */}
       <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
-        <DialogContent className="bg-[#141414] border-white/10 max-w-sm">
-          <DialogHeader><DialogTitle className="text-white">Create New Folder</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400">Folder Name</label>
-              <input value={newFolderDialogName} onChange={(e) => setNewFolderDialogName(e.target.value)}
-                placeholder="My folder" autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter" && newFolderDialogName.trim()) { createFolder(); setShowNewFolderDialog(false); } }}
-                className="block w-full px-4 py-2.5 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary text-sm" />
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New folder</DialogTitle>
+            <DialogDescription className="sr-only">Enter a name for the new folder.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); if (newFolderDialogName.trim()) { createFolder(); setShowNewFolderDialog(false); } }} className="space-y-4">
+            <TextField fieldId="nf-name" label="Folder name" value={newFolderDialogName} onChange={setNewFolderDialogName} autoFocus autoComplete="off" />
+            <div className="flex justify-end gap-2">
+              <button type="button" className={btnSecondary} onClick={() => setShowNewFolderDialog(false)}>Cancel</button>
+              <button type="submit" className={btnPrimary} disabled={!newFolderDialogName.trim()}>Create folder</button>
             </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-2">
-            <button onClick={() => setShowNewFolderDialog(false)} className="px-4 py-2 text-sm text-gray-400 border border-white/10 rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
-            <button onClick={() => { createFolder(); setShowNewFolderDialog(false); }} disabled={!newFolderDialogName.trim()}
-              className="px-4 py-2 text-sm text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all disabled:opacity-50">Create</button>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Move to Folder dialog */}
       <Dialog open={!!moveToFolderFile} onOpenChange={() => setMoveToFolderFile(null)}>
-        <DialogContent className="bg-[#141414] border-white/10 max-w-sm">
-          <DialogHeader><DialogTitle className="text-white truncate">Move "{moveToFolderFile?.original_name}"</DialogTitle></DialogHeader>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            <button onClick={() => { moveToFolder(moveToFolderFile.id, null); setMoveToFolderFile(null); }}
-              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all",
-                !moveToFolderFile?.folder_id ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-300 border border-white/5 hover:bg-white/10")}>
-              <Icon name="folder_off" className="text-lg" /> No folder
-            </button>
-            {folders.map((f: any) => (
-              <button key={f.id} onClick={() => { moveToFolder(moveToFolderFile.id, f.id); setMoveToFolderFile(null); }}
-                className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all",
-                  moveToFolderFile?.folder_id === f.id ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-gray-300 border border-white/5 hover:bg-white/10")}>
-                <Icon name="folder" className="text-lg" /> {f.name}
-              </button>
-            ))}
-          </div>
-          {folders.length === 0 && <p className="text-gray-500 text-sm text-center py-2">No folders yet. Create one first.</p>}
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Move file</DialogTitle>
+            <DialogDescription className="truncate">{moveToFolderFile?.original_name}</DialogDescription>
+          </DialogHeader>
+          {folders.length === 0 ? (
+            <p className="text-sm text-muted-foreground">There are no folders yet. Create one first.</p>
+          ) : (
+            <div role="group" aria-label="Folders" className="max-h-64 space-y-1 overflow-y-auto">
+              {[{ id: null as string | null, name: "No folder" }, ...folders].map((f: any) => (
+                <button key={f.id ?? "none"} type="button" aria-pressed={(moveToFolderFile?.folder_id || null) === f.id}
+                  onClick={() => { moveToFolder(moveToFolderFile.id, f.id); setMoveToFolderFile(null); }}
+                  className={cn("flex min-h-11 w-full items-center rounded-md border px-3 text-left text-sm", (moveToFolderFile?.folder_id || null) === f.id ? "border-primary bg-primary/10" : "border-border hover:bg-white/5")}>
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
@@ -883,14 +609,9 @@ export default function UploadsPage() {
 function FilePreview({ upload }: { upload: any }) {
   const url = `/api/files/${upload.file_path}`;
   const category = getMimeCategory(upload.mime_type);
-  if (category === "image") return <img src={url} alt={upload.original_name} className="max-w-full max-h-[60vh] object-contain mx-auto rounded" />;
-  if (category === "video") return <video src={url} controls autoPlay className="max-w-full max-h-[60vh] mx-auto rounded" />;
+  if (category === "image") return <img src={url} alt={upload.original_name} className="mx-auto max-h-[60vh] max-w-full rounded object-contain" />;
+  if (category === "video") return <video src={url} controls className="mx-auto max-h-[60vh] max-w-full rounded" />;
   if (category === "audio") return <audio src={url} controls className="w-full" />;
-  if (category === "pdf") return <iframe src={url} className="w-full h-[60vh] rounded border border-white/10" />;
-  return (
-    <div className="text-center py-12">
-      <Icon name="description" className="text-6xl text-gray-600 mb-4" />
-      <p className="text-gray-500">Preview not available</p>
-    </div>
-  );
+  if (category === "pdf") return <iframe src={url} title={upload.original_name} className="h-[60vh] w-full rounded border border-border" />;
+  return <p className="py-10 text-center text-sm text-muted-foreground">No preview for this file type. Use Download or Open page.</p>;
 }

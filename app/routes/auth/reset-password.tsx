@@ -23,7 +23,7 @@ export async function loader({ request }: { request: Request }) {
   return { settings, token, valid: !!valid };
 }
 
-export const meta = ({ data }: { data?: { settings?: { site_name?: string | null } | null } }) => [
+export const meta = ({ loaderData: data }: { loaderData?: { settings?: { site_name?: string | null } | null } }) => [
   { title: `Choose a new password | ${data?.settings?.site_name || "RXShare"}` },
 ];
 

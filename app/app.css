@@ -45,7 +45,7 @@
   --muted-fg: #a1a1aa;
   --border-color: rgba(255,255,255,0.10);
   --control-border: #71717a;
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
 @layer base {
@@ -71,6 +71,11 @@
     outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
+  /* Visually hidden radio/checkbox cards: show the focus ring on the visible card */
+  label:has(> input.sr-only:focus-visible) > div {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
   html {
     color-scheme: dark;
     scrollbar-gutter: stable;
@@ -82,33 +87,10 @@
    so Tailwind v4 never tree-shakes them.
    ============================================ */
 
-.glass {
-  background: rgba(20, 20, 20, 0.85);
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
 
-.glass-card {
-  background: rgba(20, 20, 20, 0.6);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.3s ease;
-}
 
-.glass-card:hover {
-  border-color: rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3);
-  box-shadow: 0 0 0 1px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3), 0 8px 30px -5px rgba(0,0,0,0.6);
-}
 
-.shadow-glow-primary {
-  box-shadow: 0 0 20px -5px rgba(var(--primary-r), var(--primary-g), var(--primary-b), 0.3);
-}
 
-.shadow-glow-card {
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 4px 20px -5px rgba(0,0,0,0.5);
-}
 
 /* Background patterns — all declared explicitly because they are used via dynamic class names */
 .bg-pattern-grid {
@@ -140,9 +122,6 @@
   background-image: none;
 }
 
-.bg-grid-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm1 1h38v38H1V1z' fill='%23ffffff' fill-opacity='0.08' fill-rule='evenodd'/%3E%3C/svg%3E");
-}
 
 /* Nice scrollbar */
 ::-webkit-scrollbar {
@@ -166,8 +145,3 @@
   color: #0a0a0a;
 }
 
-/* Shimmer animation */
-@keyframes shimmer {
-  0% { transform: translateX(-150%) skewX(-12deg); }
-  100% { transform: translateX(150%) skewX(-12deg); }
-}

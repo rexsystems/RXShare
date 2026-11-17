@@ -22,7 +22,7 @@ export async function loader({ request }: { request: Request }) {
   }
 }
 
-export const meta = ({ data }: { data?: { settings?: { site_name?: string | null } | null } }) => [
+export const meta = ({ loaderData: data }: { loaderData?: { settings?: { site_name?: string | null } | null } }) => [
   { title: `Create account | ${data?.settings?.site_name || "RXShare"}` },
 ];
 

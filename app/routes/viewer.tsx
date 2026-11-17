@@ -4,7 +4,7 @@ import { queryOne, execute } from "~/.server/db";
 import { getSession } from "~/.server/session";
 import { getBaseUrl } from "~/.server/base-url";
 import { getMimeCategory, formatFileSize } from "~/lib/utils-format";
-import { Icon } from "~/components/Icon";
+import { btnPrimary, btnSecondary, linkClass, PasswordField } from "~/components/form";
 import { codeToHtml } from "shiki";
 import QRCode from "qrcode";
 
@@ -37,7 +37,7 @@ export async function loader({ params, request }: { params: { fileName: string }
     if (!pwCookieValid) {
       // Return minimal data for password gate
       const sys = queryOne<any>("SELECT primary_color, background_pattern FROM system_settings LIMIT 1");
-      return { passwordRequired: true, fileName: params.fileName, originalName: upload.original_name, backgroundPattern: sys?.background_pattern || "grid" };
+      return { passwordRequired: true, fileName: params.fileName, originalName: upload.original_name, backgroundPattern: sys?.background_pattern || "none" };
     }
   }
 
@@ -56,7 +56,7 @@ export async function loader({ params, request }: { params: { fileName: string }
 
   const baseUrl = getBaseUrl(request);
   const sys = queryOne<any>("SELECT primary_color, background_pattern, show_powered_by FROM system_settings LIMIT 1");
-  const data = { upload, baseUrl, primaryColor: sys?.primary_color || null, backgroundPattern: sys?.background_pattern || "grid", showPoweredBy: sys?.show_powered_by !== 0 };
+  const data = { upload, baseUrl, primaryColor: sys?.primary_color || null, backgroundPattern: sys?.background_pattern || "none", showPoweredBy: sys?.show_powered_by !== 0 };
 
   if (setCookieHeader) {
     return new Response(JSON.stringify(data), {
@@ -70,7 +70,7 @@ export async function loader({ params, request }: { params: { fileName: string }
   return data;
 }
 
-export function meta({ data }: { data: any }) {
+export function meta({ loaderData: data }: { loaderData: any }) {
   if (!data?.upload) return [{ title: "Not Found" }];
   const { upload, baseUrl, primaryColor } = data;
   const isImage = upload.mime_type?.startsWith("image/");
@@ -106,15 +106,13 @@ export function meta({ data }: { data: any }) {
 export default function Viewer() {
   const data = useLoaderData<typeof loader>() as any;
 
-  // Password gate
   if (data.passwordRequired) {
-    return <PasswordGate fileName={data.fileName} originalName={data.originalName} backgroundPattern={data.backgroundPattern} />;
+    return <PasswordGate fileName={data.fileName} originalName={data.originalName} />;
   }
 
-  const { upload, backgroundPattern, showPoweredBy } = data;
+  const { upload, showPoweredBy } = data;
   const category = getMimeCategory(upload.mime_type);
   const fileUrl = `/api/files/${upload.file_path}`;
-  const patClass = `bg-pattern-${backgroundPattern}`;
 
   const [showQr, setShowQr] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
@@ -122,135 +120,87 @@ export default function Viewer() {
 
   useEffect(() => {
     const shareUrl = `${data.baseUrl}/v/${upload.file_name}`;
-    QRCode.toDataURL(shareUrl, { width: 500, margin: 1, color: { dark: "#ffffff", light: "#00000000" } }).then(setQrDataUrl);
+    QRCode.toDataURL(shareUrl, { width: 400, margin: 2, color: { dark: "#000000", light: "#ffffff" } }).then(setQrDataUrl).catch(() => {});
   }, [data.baseUrl, upload.file_name]);
 
   useEffect(() => {
     if (!showQr) return;
-    const handleClick = (e: MouseEvent) => {
-      if (qrRef.current && !qrRef.current.contains(e.target as Node)) setShowQr(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    const onDown = (e: MouseEvent) => { if (qrRef.current && !qrRef.current.contains(e.target as Node)) setShowQr(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowQr(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [showQr]);
 
   return (
-    <div className="min-h-screen flex flex-col relative">
-      <div className={`fixed inset-0 ${patClass} opacity-40 pointer-events-none`} />
-
-      {/* Top bar */}
-      <div className="sticky top-0 z-20 glass border-b border-white/5 overflow-visible">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="border-b border-border">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
           <div className="min-w-0 flex-1">
-            <h1 className="text-base sm:text-lg font-bold text-white truncate">{upload.original_name}</h1>
-            <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-2">
-              {formatFileSize(upload.file_size)} <span>•</span>
-              <Icon name="visibility" className="text-sm" /> {upload.views} views
-              <span>•</span>
-              <Icon name="download" className="text-sm" /> {upload.downloads || 0} downloads
+            <h1 className="truncate text-lg font-semibold">{upload.original_name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {formatFileSize(upload.file_size)} · {upload.views} views · {upload.downloads || 0} downloads
             </p>
-            {upload.description && (
-              <p className="text-xs text-gray-400 mt-0.5">{upload.description}</p>
-            )}
+            {upload.description && <p className="mt-1 text-sm">{upload.description}</p>}
           </div>
-          <div className="flex gap-2 shrink-0">
-            <button onClick={() => window.history.back()}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors">
-              <Icon name="arrow_back" className="text-lg" />
-              <span className="hidden sm:inline">Back</span>
-            </button>
-            <a href={fileUrl} target="_blank" rel="noopener"
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors">
-              <Icon name="open_in_new" className="text-lg" />
-              <span className="hidden sm:inline">Raw</span>
-            </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className={btnSecondary}>Raw file</a>
             <div className="relative" ref={qrRef}>
-              <button onClick={() => setShowQr(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors">
-                <Icon name="qr_code_2" className="text-lg" />
-                <span className="hidden sm:inline">QR</span>
-              </button>
+              <button type="button" className={btnSecondary} aria-expanded={showQr} aria-controls="qr-panel" onClick={() => setShowQr((v) => !v)}>QR code</button>
               {showQr && qrDataUrl && (
-                <div className="absolute right-0 top-full mt-2 z-50" style={{ width: 216, minWidth: 216 }}>
-                  <div className="p-2 bg-[#141414] rounded-xl border border-white/10 shadow-2xl">
-                    <img src={qrDataUrl} alt="QR Code" className="block" style={{ width: 200, height: 200, minWidth: 200, maxWidth: 'none' }} />
-                  </div>
+                <div id="qr-panel" className="absolute right-0 top-full z-30 mt-2 rounded-lg border border-border bg-card p-3 shadow-lg">
+                  <img src={qrDataUrl} alt={`QR code for ${data.baseUrl}/v/${upload.file_name}`} width={200} height={200} className="size-[200px] max-w-none rounded" />
                 </div>
               )}
             </div>
-            <a href={fileUrl} download={upload.original_name}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all">
-              <Icon name="download" className="text-lg" />
-              <span className="hidden sm:inline">Download</span>
-            </a>
+            <a href={fileUrl} download={upload.original_name} className={btnPrimary}>Download</a>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Content — fills remaining viewport */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 relative z-10">
-        <div className="w-full max-w-7xl">
-          <div className="glass-card rounded-2xl overflow-hidden shadow-glow-card">
-            {category === "image" && (
-              <img src={fileUrl} alt={upload.original_name}
-                className="w-full h-auto max-h-[calc(100vh-8rem)] object-contain mx-auto" />
-            )}
-            {category === "video" && (
-              <video src={fileUrl} controls autoPlay
-                className="w-full max-h-[calc(100vh-8rem)] mx-auto" />
-            )}
-            {category === "audio" && (
-              <div className="p-8"><audio src={fileUrl} controls className="w-full" /></div>
-            )}
-            {category === "pdf" && (
-              <iframe src={fileUrl} className="w-full h-[calc(100vh-8rem)]" />
-            )}
-            {(category === "text" || category === "code") && <TextViewer url={fileUrl} fileName={upload.original_name} />}
-            {category === "other" && (
-              <div className="text-center py-16">
-                <Icon name="description" className="text-6xl text-gray-600 mb-4" />
-                <p className="text-gray-500 mb-4">Preview not available for this file type</p>
-                <a href={fileUrl} download={upload.original_name}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-glow-primary transition-all">
-                  <Icon name="download" className="text-lg" /> Download
-                </a>
-              </div>
-            )}
-          </div>
+      <main className="flex flex-1 items-start justify-center px-5 py-6 sm:px-8">
+        <div className="w-full max-w-7xl overflow-hidden rounded-lg border border-border bg-card">
+          {category === "image" && <img src={fileUrl} alt={upload.original_name} className="mx-auto h-auto max-h-[calc(100vh-10rem)] w-auto max-w-full object-contain" />}
+          {category === "video" && <video src={fileUrl} controls autoPlay className="mx-auto max-h-[calc(100vh-10rem)] w-full" />}
+          {category === "audio" && <div className="p-8"><audio src={fileUrl} controls className="w-full" /></div>}
+          {category === "pdf" && <iframe src={fileUrl} title={upload.original_name} className="h-[calc(100vh-10rem)] w-full" />}
+          {(category === "text" || category === "code") && <TextViewer url={fileUrl} fileName={upload.original_name} />}
+          {category === "other" && (
+            <div className="px-6 py-16 text-center">
+              <p className="font-medium">No preview for this file type</p>
+              <p className="mt-1 text-sm text-muted-foreground">Download it to open it on your device.</p>
+              <a href={fileUrl} download={upload.original_name} className={`${btnPrimary} mt-5`}>Download</a>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
 
-      {/* Powered by badge */}
       {showPoweredBy && (
-        <div className="relative z-10 py-4 text-center">
-          <a href="https://github.com/rexsystems/RXShare" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-300 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full transition-all">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            Powered by RXShare
-          </a>
-        </div>
+        <footer className="px-5 py-4 text-center text-xs text-muted-foreground">
+          Shared with <a href="https://github.com/rexsystems/RXShare" target="_blank" rel="noopener noreferrer" className={linkClass}>RXShare</a>
+        </footer>
       )}
-
     </div>
   );
 }
 
 function TextViewer({ url, fileName }: { url: string; fileName: string }) {
   const [content, setContent] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
   const codeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetch(url)
-      .then(r => r.text())
-      .then(t => { if (!cancelled) setContent(t.slice(0, 50000)); })
-      .catch(() => { if (!cancelled) setContent("Failed to load"); });
+      .then((r) => { if (!r.ok) throw new Error("bad status"); return r.text(); })
+      .then((t) => { if (!cancelled) setContent(t.slice(0, 50000)); })
+      .catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
   }, [url]);
 
   useEffect(() => {
-    if (!content || content === "Failed to load") return;
+    if (!content) return;
     let cancelled = false;
     const ext = fileName.split(".").pop()?.toLowerCase() || "text";
     const langMap: Record<string, string> = {
@@ -264,36 +214,34 @@ function TextViewer({ url, fileName }: { url: string; fileName: string }) {
       lua: "lua", r: "r", pl: "perl", ex: "elixir", zig: "zig",
       dockerfile: "dockerfile", makefile: "makefile",
     };
-    const lang = langMap[ext] || ext;
-    codeToHtml(content, { lang, theme: "tokyo-night" })
-      .then(html => { if (!cancelled) setHighlightedHtml(html); })
-      .catch(() => { /* fall back to plain pre */ });
+    codeToHtml(content, { lang: langMap[ext] || ext, theme: "tokyo-night" })
+      .then((html) => { if (!cancelled) setHighlightedHtml(html); })
+      .catch(() => { /* fall back to the plain text below */ });
     return () => { cancelled = true; };
   }, [content, fileName]);
 
-  // Write highlighted HTML via ref to avoid React reconciliation issues with dangerouslySetInnerHTML
+  // Shiki returns trusted, escaped markup; write it through a ref so React does not reconcile it.
   useEffect(() => {
-    if (codeRef.current && highlightedHtml) {
-      codeRef.current.innerHTML = highlightedHtml;
-    }
+    if (codeRef.current && highlightedHtml) codeRef.current.innerHTML = highlightedHtml;
   }, [highlightedHtml]);
 
-  // Single stable container — ref-based innerHTML avoids React reconciliation issues
+  if (failed) return <p role="alert" className="px-6 py-14 text-center text-sm text-red-300">This file could not be loaded.</p>;
+
   return (
-    <div ref={codeRef} className="p-4 text-sm overflow-auto max-h-[calc(100vh-8rem)] [&_pre]:!bg-transparent [&_code]:!font-mono">
-      {!highlightedHtml && <pre className="whitespace-pre-wrap font-mono text-gray-300">{content ?? "Loading..."}</pre>}
+    <div ref={codeRef} tabIndex={0} role="region" aria-label={`Contents of ${fileName}`} className="max-h-[calc(100vh-10rem)] overflow-auto p-4 text-sm [&_code]:!font-mono [&_pre]:!bg-transparent">
+      {!highlightedHtml && <pre className="whitespace-pre-wrap font-mono">{content ?? "Loading…"}</pre>}
     </div>
   );
 }
 
-function PasswordGate({ fileName, originalName, backgroundPattern }: { fileName: string; originalName: string; backgroundPattern: string }) {
+function PasswordGate({ fileName, originalName }: { fileName: string; originalName: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const patClass = `bg-pattern-${backgroundPattern}`;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!password) { setError("Enter the password."); return; }
     setLoading(true); setError("");
     try {
       const res = await fetch("/api/verify-password", {
@@ -301,33 +249,26 @@ function PasswordGate({ fileName, originalName, backgroundPattern }: { fileName:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fileName, password }),
       });
-      if (!res.ok) { const d = await res.json(); setError(d.error || "Wrong password"); return; }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(res.status === 429 ? "Too many attempts. Wait a few minutes and try again." : d.error || "That password is not right.");
+        return;
+      }
       window.location.reload();
-    } catch { setError("Failed to verify"); }
+    } catch { setError("Could not check the password. Try again."); }
     finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className={`fixed inset-0 ${patClass} opacity-40 pointer-events-none`} />
-      <div className="glass-card rounded-2xl p-8 max-w-sm w-full space-y-6 relative z-10 shadow-glow-card">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-            <Icon name="lock" className="text-3xl text-primary" />
-          </div>
-          <h1 className="text-xl font-bold text-white">Password Protected</h1>
-          <p className="text-sm text-gray-500 mt-1 truncate">{originalName}</p>
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password"
-            className="block w-full px-4 py-3 border border-white/10 rounded-lg bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm" autoFocus />
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <button type="submit" disabled={loading || !password}
-            className="w-full bg-primary hover:bg-[var(--primary-hover)] text-white py-3 rounded-lg font-bold shadow-glow-primary transition-all disabled:opacity-50">
-            {loading ? "Verifying..." : "Unlock"}
-          </button>
+    <main className="flex min-h-screen items-start justify-center bg-background px-5 pt-24 text-foreground sm:items-center sm:pt-0">
+      <div className="w-full max-w-sm">
+        <h1 className="text-2xl font-semibold tracking-tight">This file is protected</h1>
+        <p className="mt-1.5 truncate text-sm text-muted-foreground">{originalName}</p>
+        <form onSubmit={submit} noValidate className="mt-8 space-y-5">
+          <PasswordField fieldId="f-password" label="Password" value={password} onChange={setPassword} error={error} autoFocus autoComplete="off" />
+          <button type="submit" disabled={loading} aria-busy={loading} className={`${btnPrimary} w-full`}>{loading ? "Checking…" : "Unlock file"}</button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

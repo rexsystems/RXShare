@@ -121,7 +121,6 @@ export function ErrorBoundary() {
   let status = 500;
   let title = "Something went wrong";
   let message = "An unexpected error occurred. Please try again later.";
-  let icon = "error";
 
   if (isResponse) {
     status = error.status;
@@ -129,22 +128,18 @@ export function ErrorBoundary() {
       case 404:
         title = "Page not found";
         message = "The page you're looking for doesn't exist or has been moved.";
-        icon = "search_off";
         break;
       case 403:
         title = "Access denied";
         message = "You don't have permission to view this page.";
-        icon = "lock";
         break;
       case 401:
         title = "Unauthorized";
         message = "You need to sign in to access this page.";
-        icon = "person_off";
         break;
       case 500:
         title = "Server error";
         message = "Something went wrong on our end. Please try again later.";
-        icon = "cloud_off";
         break;
       default:
         title = `Error ${error.status}`;
@@ -153,28 +148,17 @@ export function ErrorBoundary() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6">
-      <div className="text-center max-w-md">
-        <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-[#141414] border border-white/5 flex items-center justify-center shadow-glow-card">
-          <span className="material-symbols-outlined text-5xl text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>{icon}</span>
-        </div>
-        <p className="text-8xl font-bold text-white/10 mb-4">{status}</p>
-        <h1 className="text-2xl font-bold text-white mb-3">{title}</h1>
-        <p className="text-gray-500 text-sm mb-8 leading-relaxed">{message}</p>
-        <div className="flex items-center justify-center gap-3">
-          <a href="/"
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary hover:bg-[var(--primary-hover)] rounded-xl shadow-glow-primary transition-all">
-            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>home</span>
-            Go Home
-          </a>
-          <button onClick={() => window.history.back()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">
-            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>arrow_back</span>
-            Go Back
-          </button>
+    <main className="flex min-h-screen items-start justify-center bg-background px-5 pt-24 text-foreground sm:items-center sm:pt-0">
+      <div className="w-full max-w-sm">
+        <p className="font-mono text-sm text-muted-foreground">{status}</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+        <div className="mt-6 flex gap-3">
+          <a href="/" className="inline-flex min-h-11 items-center rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-[var(--primary-hover)]">Go to start page</a>
+          <button type="button" onClick={() => window.history.back()} className="inline-flex min-h-11 items-center rounded-md border border-[var(--control-border)] px-5 text-sm font-medium hover:bg-white/5">Go back</button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
