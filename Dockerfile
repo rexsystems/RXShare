@@ -11,6 +11,9 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
+# Drop dev dependencies here, where the toolchain for native modules (better-sqlite3, sharp) exists
+RUN npm prune --omit=dev
+
 # --- Production ---
 FROM node:22-slim
 
@@ -19,7 +22,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json .npmrc ./
-RUN npm ci --omit=dev
+COPY --from=builder /app/node_modules ./node_modules
 
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/public ./public
