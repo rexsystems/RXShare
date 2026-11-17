@@ -1,5 +1,6 @@
 import { type Cookie, createCookie } from "react-router";
 import { verifyToken, getUserById, type User } from "./auth";
+import { queryOne } from "~/.server/db";
 
 const sessionCookie: Cookie = createCookie("rxshare_session", {
   httpOnly: true,
@@ -30,6 +31,9 @@ async function parseSession(request: Request): Promise<{ user: User } | null> {
   if (!decoded) return null;
   const user = getUserById(decoded.userId);
   if (!user) return null;
+  // Deactivated accounts must lose access immediately, not when their JWT expires
+  const settings = queryOne<{ is_active: number }>("SELECT is_active FROM user_settings WHERE user_id = ?", [user.id]);
+  if (settings && settings.is_active === 0) return null;
   return { user };
 }
 

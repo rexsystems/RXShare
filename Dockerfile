@@ -1,4 +1,4 @@
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # --- Production ---
-FROM node:20-slim
+FROM node:22-slim
 
 WORKDIR /app
 
@@ -32,5 +32,8 @@ ENV PORT=3000
 EXPOSE 3000
 
 VOLUME ["/app/data"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/system-settings/public').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 
 CMD ["npm", "start"]

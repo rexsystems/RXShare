@@ -1,47 +1,33 @@
-import { getSession } from "~/.server/session";
-import { isAdmin } from "~/.server/auth";
-import { isFirstRun } from "~/.server/db";
+import type { MiddlewareFunction } from "react-router";
 
-export async function appMiddleware(
-  { request }: { request: Request; context: any },
-  next: () => Promise<Response>
-): Promise<Response> {
-  const url = new URL(request.url);
-  const path = url.pathname;
+// React Router injects inline scripts for hydration, so 'unsafe-inline' is required for script-src.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://cdn.rxss.click",
+  "media-src 'self' blob:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+].join("; ");
 
-  if (path.startsWith("/api/") || path.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/)) return next();
-
-  try {
-    if (path !== "/setup" && isFirstRun()) {
-      return new Response(null, { status: 302, headers: { Location: "/setup" } });
-    }
-    if (path === "/setup" && !isFirstRun()) {
-      return new Response(null, { status: 302, headers: { Location: "/" } });
-    }
-  } catch {}
-
-  if (path.startsWith("/dashboard")) {
-    const session = await getSession(request);
-    if (!session) return new Response(null, { status: 302, headers: { Location: "/auth/login" } });
-    if (path.startsWith("/dashboard/admin") && !isAdmin(session.user.id)) {
-      return new Response(null, { status: 302, headers: { Location: "/dashboard" } });
-    }
-  }
-
-  if (path.startsWith("/auth/")) {
-    const session = await getSession(request);
-    if (session) return new Response(null, { status: 302, headers: { Location: "/dashboard" } });
-  }
-
+/** Applies security headers to every response. Handlers that set their own value (e.g. raw file serving) win. */
+export const securityHeaders: MiddlewareFunction<Response> = async ({ request }, next) => {
   const response = await next();
+  const set = (k: string, v: string) => { if (!response.headers.has(k)) response.headers.set(k, v); };
 
-  // Add security headers to all HTML responses
-  if (!path.startsWith("/api/")) {
-    response.headers.set("X-Frame-Options", "SAMEORIGIN");
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  }
+  set("X-Content-Type-Options", "nosniff");
+  set("X-Frame-Options", "SAMEORIGIN");
+  set("Referrer-Policy", "strict-origin-when-cross-origin");
+  set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  set("Content-Security-Policy", CSP);
+
+  const proto = request.headers.get("x-forwarded-proto") || new URL(request.url).protocol.replace(":", "");
+  if (proto === "https") set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 
   return response;
-}
+};

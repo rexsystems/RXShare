@@ -38,7 +38,7 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) { toast({ title: "Passwords don't match", variant: "destructive" }); return; }
-    if (password.length < 6) { toast({ title: "Password must be at least 6 characters", variant: "destructive" }); return; }
+    if (password.length < 8) { toast({ title: "Password must be at least 8 characters", variant: "destructive" }); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/reset-password", {

@@ -32,11 +32,11 @@ export async function loader({ params, request }: { params: { fileName: string }
   }
 
   if (upload.password_hash && !isOwner) {
-    const { verifyCookieSignature } = await import("~/routes/api/verify-password");
+    const { verifyCookieSignature } = await import("~/.server/file-password");
     const cookieHeader = request.headers.get("Cookie") || "";
     const pwCookieName = `pw_${upload.id}`;
     const pwMatch = cookieHeader.match(new RegExp(`${pwCookieName}=([^;]+)`));
-    const pwCookieValid = pwMatch ? verifyCookieSignature(pwMatch[1]) : false;
+    const pwCookieValid = pwMatch ? verifyCookieSignature(pwMatch[1], upload.id) : false;
     if (!pwCookieValid) return new Response("Password required", { status: 403 });
   }
 
@@ -45,6 +45,15 @@ export async function loader({ params, request }: { params: { fileName: string }
   const dangerousTypes = ["text/html", "image/svg+xml", "text/javascript", "application/javascript"];
   const contentType = dangerousTypes.includes(upload.mime_type) ? "application/octet-stream" : (upload.mime_type || "application/octet-stream");
   const rangeHeader = request.headers.get("Range");
+  // Uploaded content is untrusted: never let it run scripts or be sniffed into another type
+  // Only anonymous, permanent, unprotected files may be cached by shared caches / CDNs
+  const cacheControl = upload.is_public && !upload.password_hash && !upload.expires_at
+    ? "public, max-age=31536000, immutable"
+    : "private, no-store";
+  const safeHeaders = {
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox",
+  };
 
   if (!rangeHeader) {
     try { execute("UPDATE uploads SET downloads = downloads + 1 WHERE id = ?", [upload.id]); } catch {}
@@ -66,7 +75,8 @@ export async function loader({ params, request }: { params: { fileName: string }
         "Content-Range": `bytes ${start}-${end}/${totalSize}`,
         "Content-Length": String(end - start + 1),
         "Accept-Ranges": "bytes",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": cacheControl,
+        ...safeHeaders,
       },
     });
   }
@@ -78,7 +88,8 @@ export async function loader({ params, request }: { params: { fileName: string }
       "Content-Disposition": `inline; filename="${safeName}"`,
       "Content-Length": String(size),
       "Accept-Ranges": "bytes",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": cacheControl,
+      ...safeHeaders,
     },
   });
 }

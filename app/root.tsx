@@ -1,6 +1,9 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData, type LinksFunction, isRouteErrorResponse, useRouteError } from "react-router";
 import { Toaster } from "~/components/ui/toaster";
 import stylesheet from "~/app.css?url";
+import { securityHeaders } from "~/.server/middleware";
+
+export const middleware = [securityHeaders];
 
 export const links: LinksFunction = () => [
   { rel: "icon", type: "image/svg+xml", href: "https://cdn.rxss.click/rexsystems/logo-transparent.svg" },

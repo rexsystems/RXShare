@@ -3,15 +3,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { nanoid } from "nanoid";
 import { query, queryOne, execute } from "~/.server/db";
+import { getSecret } from "~/.server/secret";
 
-const DEFAULT_SECRET = "change-this-secret-key-in-production";
-const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_SECRET;
 const JWT_EXPIRES_IN = "7d";
-
-// Warn loudly if using default secret
-if (JWT_SECRET === DEFAULT_SECRET && process.env.NODE_ENV === "production") {
-  console.error("\n⚠️  CRITICAL: JWT_SECRET is using the default value! Set a secure JWT_SECRET in .env before running in production.\n");
-}
+const BCRYPT_ROUNDS = 12;
+// Precomputed hash so failed logins for unknown emails cost the same as real ones (no user enumeration by timing)
+const DUMMY_HASH = bcrypt.hashSync("rxshare-dummy-password", BCRYPT_ROUNDS);
 
 export interface User {
   id: string;
@@ -22,16 +19,16 @@ export interface User {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 export async function verifyPassword(password: string, hashed: string): Promise<boolean> {
   return bcrypt.compare(password, hashed);
 }
 export function generateToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign({ userId }, getSecret(), { algorithm: "HS256", expiresIn: JWT_EXPIRES_IN });
 }
 export function verifyToken(token: string): { userId: string } | null {
-  try { return jwt.verify(token, JWT_SECRET) as { userId: string }; } catch { return null; }
+  try { return jwt.verify(token, getSecret(), { algorithms: ["HS256"] }) as { userId: string }; } catch { return null; }
 }
 
 export function sanitizeUsername(username: string | undefined | null): string {
@@ -53,7 +50,7 @@ export async function createUser(email: string, password: string, username: stri
   if (!emailRegex.test(email)) throw new Error("Invalid email format");
 
   // Enforce password minimum length
-  if (!password || password.length < 6) throw new Error("Password must be at least 6 characters");
+  if (!password || password.length < 8) throw new Error("Password must be at least 8 characters");
   if (password.length > 128) throw new Error("Password too long");
 
   const sanitized = sanitizeUsername(username);
@@ -85,7 +82,10 @@ export async function createUser(email: string, password: string, username: stri
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   const user = queryOne<{ id: string; email: string; username: string | null; password_hash: string; created_at: string; last_sign_in_at: string | null }>(
     "SELECT id, email, username, password_hash, created_at, last_sign_in_at FROM users WHERE email = ?", [email.toLowerCase().trim()]);
-  if (!user) return null;
+  if (!user) {
+    await bcrypt.compare(password, DUMMY_HASH);
+    return null;
+  }
 
   const settings = queryOne<{ is_active: number }>("SELECT is_active FROM user_settings WHERE user_id = ?", [user.id]);
   if (settings && settings.is_active === 0) throw new Error("Account is deactivated");

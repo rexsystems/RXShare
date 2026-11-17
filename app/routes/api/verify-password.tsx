@@ -1,35 +1,9 @@
-import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { queryOne } from "~/.server/db";
 import { rateLimit } from "~/.server/rate-limit";
 import { isFeatureEnabled } from "~/.server/features";
+import { signCookieValue } from "~/.server/file-password";
 
-const PW_COOKIE_SECRET = process.env.JWT_SECRET || "pw-cookie-fallback-secret";
-
-/** Create an HMAC-signed cookie value with expiry so it can't be forged */
-function signCookieValue(uploadId: string): string {
-  const expiresAt = Date.now() + 3600 * 1000; // 1 hour
-  const payload = `${uploadId}:${expiresAt}`;
-  const sig = crypto.createHmac("sha256", PW_COOKIE_SECRET).update(payload).digest("hex");
-  return `${payload}.${sig}`;
-}
-
-/** Verify an HMAC-signed cookie value including expiry check */
-export function verifyCookieSignature(value: string): boolean {
-  const lastDot = value.lastIndexOf(".");
-  if (lastDot === -1) return false;
-  const payload = value.substring(0, lastDot);
-  const sig = value.substring(lastDot + 1);
-  const expected = crypto.createHmac("sha256", PW_COOKIE_SECRET).update(payload).digest("hex");
-  if (sig.length !== expected.length) return false;
-  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return false;
-  // Verify expiry
-  const parts = payload.split(":");
-  if (parts.length < 2) return false;
-  const expiresAt = parseInt(parts[parts.length - 1], 10);
-  if (isNaN(expiresAt) || Date.now() > expiresAt) return false;
-  return true;
-}
 
 export async function action({ request }: { request: Request }) {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });

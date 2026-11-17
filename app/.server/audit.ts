@@ -3,7 +3,7 @@ import { execute, query } from "~/.server/db";
 
 export type AuditAction =
   | "upload" | "delete" | "view" | "download"
-  | "login" | "logout" | "signup"
+  | "login" | "logout" | "signup" | "2fa.enable" | "2fa.disable"
   | "user.create" | "user.delete" | "user.update"
   | "settings.update" | "folder.create" | "folder.delete"
   | "invite.create" | "invite.use"

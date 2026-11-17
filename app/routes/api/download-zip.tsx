@@ -1,4 +1,4 @@
-import archiver from "archiver";
+import { ZipArchive } from "archiver";
 import { PassThrough, Readable } from "stream";
 import { getSession } from "~/.server/session";
 import { query } from "~/.server/db";
@@ -34,7 +34,7 @@ export async function action({ request }: { request: Request }) {
   if (uploads.length === 0) return Response.json({ error: "No files found" }, { status: 404 });
 
   const storage = await getStorage();
-  const archive = archiver("zip", { zlib: { level: 1 } }); // fast compression
+  const archive = new ZipArchive({ zlib: { level: 1 } }); // fast compression
   const passthrough = new PassThrough();
   archive.pipe(passthrough);
 

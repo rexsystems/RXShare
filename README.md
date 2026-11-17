@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/status-beta-orange" alt="Beta" />
-  <img src="https://img.shields.io/github/license/RXShare/RXShare" alt="License" />
-  <img src="https://img.shields.io/github/stars/RXShare/RXShare?style=flat" alt="Stars" />
+  <img src="https://img.shields.io/github/license/rexsystems/RXShare" alt="License" />
+  <img src="https://img.shields.io/github/stars/rexsystems/RXShare?style=flat" alt="Stars" />
 </p>
 
 # RXShare
@@ -30,7 +30,7 @@ Self-hosted file sharing. Upload stuff, get links, share them. That's it.
 One command. Installs Docker if needed, sets everything up, and starts the app.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RXShare/RXShare/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/rexsystems/RXShare/main/install.sh | sudo bash
 ```
 
 The installer will ask you how to expose RXShare:
@@ -48,7 +48,7 @@ After install, open your browser and go to `/setup` to create your admin account
 If you prefer to handle it yourself:
 
 ```bash
-git clone https://github.com/RXShare/RXShare.git
+git clone https://github.com/rexsystems/RXShare.git
 cd RXShare
 cp .env.example .env        # edit .env with your secrets
 docker compose up -d --build
@@ -63,10 +63,10 @@ ports:
 
 ## Without Docker
 
-Requires Node.js 20+.
+Requires Node.js 22+.
 
 ```bash
-git clone https://github.com/RXShare/RXShare.git
+git clone https://github.com/rexsystems/RXShare.git
 cd RXShare
 npm install
 npm run build
@@ -101,6 +101,13 @@ Key settings:
 ## Stack
 
 React Router 7 (SSR) · TypeScript · Tailwind CSS 4 · SQLite/MySQL · Sharp
+
+## Security
+
+- Sessions are signed JWTs in `HttpOnly` cookies, with CSRF protection on every state-changing request.
+- If `JWT_SECRET` is not set, a random one is generated and stored in `data/.jwt_secret` - there is no built-in default.
+- Uploaded files are served with `nosniff` and a locked-down `Content-Security-Policy`; private or password-protected files are never cached by shared caches.
+- Found a vulnerability? See [SECURITY.md](SECURITY.md).
 
 ## License
 

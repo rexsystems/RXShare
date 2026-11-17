@@ -60,7 +60,7 @@ export default function SignUp() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) { toast({ title: "Passwords don't match", variant: "destructive" }); return; }
-    if (password.length < 6) { toast({ title: "Password must be at least 6 characters", variant: "destructive" }); return; }
+    if (password.length < 8) { toast({ title: "Password must be at least 8 characters", variant: "destructive" }); return; }
     const usernameRegex = /^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/;
     if (!usernameRegex.test(username)) { toast({ title: "Invalid username", description: "3-30 chars, lowercase alphanumeric with . _ -", variant: "destructive" }); return; }
     setLoading(true);

@@ -984,7 +984,7 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
         <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-white flex items-center gap-2"><span className="w-1 h-5 bg-primary rounded-full" /> Uploads</h3>
-            <RangeDropdown value={range} onChange={handleRangeChange} />
+            <RangeDropdown />
           </div>
           {uploadsPerDay.length === 0 ? <div className="flex items-center justify-center h-[280px] text-gray-500 text-sm">No data for this period</div> : (
             <ResponsiveContainer width="100%" height={280}>
@@ -1002,7 +1002,7 @@ function AnalyticsTab({ users, allUploads }: { users: any[]; allUploads: any[] }
         <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 shadow-glow-card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-white flex items-center gap-2"><span className="w-1 h-5 bg-blue-500 rounded-full" /> Storage Growth</h3>
-            <RangeDropdown value={range} onChange={handleRangeChange} />
+            <RangeDropdown />
           </div>
           {uploadsPerDay.length === 0 ? <div className="flex items-center justify-center h-[280px] text-gray-500 text-sm">No data for this period</div> : (
             <ResponsiveContainer width="100%" height={280}>

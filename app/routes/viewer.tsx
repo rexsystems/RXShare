@@ -29,11 +29,11 @@ export async function loader({ params, request }: { params: { fileName: string }
   // Check password protection (owner bypasses)
   const needsPassword = !!upload.password_hash && !isOwner;
   if (needsPassword) {
-    const { verifyCookieSignature } = await import("~/routes/api/verify-password");
+    const { verifyCookieSignature } = await import("~/.server/file-password");
     const cookieHeader = request.headers.get("Cookie") || "";
     const pwCookieName = `pw_${upload.id}`;
     const pwMatch = cookieHeader.match(new RegExp(`${pwCookieName}=([^;]+)`));
-    const pwCookieValid = pwMatch ? verifyCookieSignature(pwMatch[1]) : false;
+    const pwCookieValid = pwMatch ? verifyCookieSignature(pwMatch[1], upload.id) : false;
     if (!pwCookieValid) {
       // Return minimal data for password gate
       const sys = queryOne<any>("SELECT primary_color, background_pattern FROM system_settings LIMIT 1");
@@ -223,7 +223,7 @@ export default function Viewer() {
       {/* Powered by badge */}
       {showPoweredBy && (
         <div className="relative z-10 py-4 text-center">
-          <a href="https://github.com/RXShare/RXShare" target="_blank" rel="noopener noreferrer"
+          <a href="https://github.com/rexsystems/RXShare" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-300 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full transition-all">
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             Powered by RXShare

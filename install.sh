@@ -9,7 +9,7 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-REPO_URL="https://github.com/RXShare/RXShare.git"
+REPO_URL="https://github.com/rexsystems/RXShare.git"
 DEFAULT_DIR="/opt/rxshare"
 
 echo ""
