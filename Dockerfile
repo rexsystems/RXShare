@@ -1,4 +1,4 @@
-FROM node:22-slim AS builder
+FROM node:26-slim AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # --- Production ---
-FROM node:22-slim
+FROM node:26-slim
 
 WORKDIR /app
 
