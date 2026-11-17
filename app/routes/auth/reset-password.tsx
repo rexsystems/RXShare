@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLoaderData } from "react-router";
-import { useToast } from "~/components/ui/use-toast";
 import { getCsrfToken } from "~/lib/csrf";
-
-const DEFAULT_LOGO = "https://cdn.694206767.xyz/rexsystems/logo-transparent.svg";
+import { AuthLayout, authLogo } from "~/components/AuthLayout";
+import { btnPrimary, linkClass, Notice, PasswordField } from "~/components/form";
 
 export async function loader({ request }: { request: Request }) {
   const { queryOne, isFirstRun } = await import("~/.server/db");
@@ -24,21 +23,47 @@ export async function loader({ request }: { request: Request }) {
   return { settings, token, valid: !!valid };
 }
 
+export const meta = ({ data }: { data?: { settings?: { site_name?: string | null } | null } }) => [
+  { title: `Choose a new password | ${data?.settings?.site_name || "RXShare"}` },
+];
+
 export default function ResetPassword() {
   const { settings, token, valid } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [attempted, setAttempted] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const logo = settings?.logo_url?.trim() || DEFAULT_LOGO;
-  const inputCls = "block w-full px-4 py-3.5 border border-white/10 rounded-xl bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
+  const siteName = settings?.site_name || "RXShare";
+  const logo = authLogo(settings);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const errors: Record<string, string> = {};
+  if (attempted) {
+    if (password.length < 8) errors.password = "Use at least 8 characters.";
+    else if (password.length > 128) errors.password = "Use 128 characters or fewer.";
+    if (confirmPassword !== password) errors.confirmPassword = "The passwords do not match.";
+  }
+
+  if (!valid) {
+    return (
+      <AuthLayout
+        siteName={siteName} logo={logo} title="This link no longer works"
+        description="Reset links expire after 1 hour and can be used once."
+        footer={<p><Link to="/auth/forgot-password" className={linkClass}>Request a new link</Link></p>}
+      />
+    );
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) { toast({ title: "Passwords don't match", variant: "destructive" }); return; }
-    if (password.length < 8) { toast({ title: "Password must be at least 8 characters", variant: "destructive" }); return; }
+    setAttempted(true);
+    if (password.length < 8 || password.length > 128 || confirmPassword !== password) {
+      requestAnimationFrame(() => document.getElementById(password.length < 8 || password.length > 128 ? "f-password" : "f-confirm")?.focus());
+      return;
+    }
+    setError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/reset-password", {
@@ -46,56 +71,24 @@ export default function ResetPassword() {
         headers: { "Content-Type": "application/json", ...(getCsrfToken() ? { "X-CSRF-Token": getCsrfToken()! } : {}) },
         body: JSON.stringify({ token, password }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
-      toast({ title: "Password reset successfully!" });
-      navigate("/auth/login");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "The password could not be changed.");
+      navigate("/auth/login?reset=1");
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setError(err.message);
     } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-10 pointer-events-none" />
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10 w-full max-w-lg">
-        <div className="glass-card rounded-2xl shadow-glow-card overflow-hidden">
-          <div className="p-10 pb-6 text-center relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <img src={logo} alt="" className="h-12 w-12 object-contain" />
-                <span className="text-2xl font-bold text-white tracking-tight">{settings?.site_name || "RXShare"}</span>
-              </div>
-              <h2 className="text-xl font-bold text-white">Reset Password</h2>
-              <p className="text-gray-500 text-sm mt-1">Enter your new password</p>
-            </div>
-          </div>
-          <div className="px-10 pb-10">
-            {!valid ? (
-              <div className="text-center space-y-4">
-                <p className="text-sm text-red-400">This reset link is invalid or has expired.</p>
-                <Link to="/auth/forgot-password" className="text-sm text-primary hover:text-[var(--primary-hover)] font-medium transition-colors">Request a new one →</Link>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">New Password</label>
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputCls} placeholder="Min 6 characters" autoFocus />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Confirm Password</label>
-                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className={inputCls} />
-                </div>
-                <button type="submit" disabled={loading || !password || !confirmPassword}
-                  className="w-full bg-primary hover:bg-[var(--primary-hover)] text-white py-3.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-[1.02] disabled:opacity-50 relative overflow-hidden text-base">
-                  <span className="relative z-10">{loading ? "Resetting..." : "Reset Password"}</span>
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <AuthLayout siteName={siteName} logo={logo} title="Choose a new password" description="Use at least 8 characters.">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <PasswordField fieldId="f-password" label="New password" value={password} onChange={setPassword} error={errors.password} autoComplete="new-password" autoFocus />
+        <PasswordField fieldId="f-confirm" label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} error={errors.confirmPassword} autoComplete="new-password" />
+        {error && <Notice tone="error" title="Could not change the password">{error}</Notice>}
+        <button type="submit" className={`${btnPrimary} w-full`} disabled={loading} aria-busy={loading}>
+          {loading ? "Saving…" : "Change password"}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link, useLoaderData } from "react-router";
-import { useToast } from "~/components/ui/use-toast";
+import { useState, type FormEvent } from "react";
+import { useNavigate, Link, useLoaderData, useSearchParams } from "react-router";
 import { getCsrfToken } from "~/lib/csrf";
 import { Captcha, useCaptcha } from "~/components/Captcha";
-
-const DEFAULT_LOGO = "https://cdn.694206767.xyz/rexsystems/logo-transparent.svg";
+import { AuthLayout, authLogo } from "~/components/AuthLayout";
+import { btnPrimary, linkClass, Notice, PasswordField, TextField } from "~/components/form";
 
 export async function loader({ request }: { request: Request }) {
   const { queryOne, isFirstRun } = await import("~/.server/db");
@@ -23,185 +22,157 @@ export async function loader({ request }: { request: Request }) {
   }
 }
 
+export const meta = ({ data }: { data?: { settings?: { site_name?: string | null } | null } }) => [
+  { title: `Sign in | ${data?.settings?.site_name || "RXShare"}` },
+];
+
 export default function Login() {
   const { settings } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [params] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // 2FA state
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+
   const [requires2fa, setRequires2fa] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [useBackupCode, setUseBackupCode] = useState(false);
 
-  // CAPTCHA
-  const captchaEnabled = settings?.captcha_provider && settings.captcha_provider !== "none" && settings.captcha_site_key && settings.captcha_on_login;
+  const captchaEnabled = !!(settings?.captcha_provider && settings.captcha_provider !== "none" && settings.captcha_site_key && settings.captcha_on_login);
   const { captchaToken, onVerify, onExpire } = useCaptcha();
 
-  const logo = settings?.logo_url?.trim() || DEFAULT_LOGO;
+  const siteName = settings?.site_name || "RXShare";
+  const logo = authLogo(settings);
+  const codeLength = useBackupCode ? 8 : 6;
 
   if (settings && !settings.allow_login) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="glass-card rounded-2xl p-8 w-full max-w-md text-center shadow-glow-card">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <img src={logo} alt="" className="h-12 w-12 object-contain" />
-            <span className="text-2xl font-bold text-white">{settings?.site_name || "RXShare"}</span>
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Login Disabled</h2>
-          <p className="text-gray-500 text-sm">Login is currently disabled by the administrator.</p>
-        </div>
-      </div>
+      <AuthLayout siteName={siteName} logo={logo} title="Sign-in is turned off" description="The administrator has disabled sign-in on this instance. Try again later or contact them." />
     );
   }
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const csrfHeaders = () => ({ "Content-Type": "application/json", ...(getCsrfToken() ? { "X-CSRF-Token": getCsrfToken()! } : {}) });
+
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
+    const fe: typeof fieldErrors = {};
+    if (!email.trim()) fe.email = "Enter your email address.";
+    if (!password) fe.password = "Enter your password.";
+    setFieldErrors(fe);
+    if (fe.email || fe.password) {
+      requestAnimationFrame(() => document.getElementById(fe.email ? "f-email" : "f-password")?.focus());
+      return;
+    }
+    setError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
-        method: "POST", headers: { "Content-Type": "application/json", ...(getCsrfToken() ? { "X-CSRF-Token": getCsrfToken()! } : {}) },
+        method: "POST", headers: csrfHeaders(),
         body: JSON.stringify({ email, password, captchaToken }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
-      
-      // Check if 2FA is required
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Sign-in failed.");
       if (data.requires2fa) {
         setRequires2fa(true);
         setSessionId(data.sessionId);
-        setLoading(false);
         return;
       }
-      
       navigate("/dashboard");
     } catch (err: any) {
-      toast({ title: "Login failed", description: err.message, variant: "destructive" });
+      setError(err.message);
     } finally { setLoading(false); }
   };
 
-  const handleVerify2fa = async (e: React.FormEvent) => {
+  const handleVerify2fa = async (e: FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/totp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(getCsrfToken() ? { "X-CSRF-Token": getCsrfToken()! } : {}) },
+        method: "POST", headers: csrfHeaders(),
         body: JSON.stringify({ sessionId, token: totpCode, useBackupCode }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Verification failed");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "That code was not accepted.");
       navigate("/dashboard");
     } catch (err: any) {
-      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+      setError(err.message);
     } finally { setLoading(false); }
   };
 
+  if (requires2fa) {
+    return (
+      <AuthLayout
+        siteName={siteName} logo={logo}
+        title="Two-factor code"
+        description={useBackupCode ? "Enter one of your 8-character backup codes." : "Enter the 6-digit code from your authenticator app."}
+      >
+        <form onSubmit={handleVerify2fa} noValidate className="space-y-5">
+          <TextField
+            fieldId="f-code" label={useBackupCode ? "Backup code" : "Authentication code"} value={totpCode}
+            onChange={(v) => setTotpCode(useBackupCode ? v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) : v.replace(/\D/g, "").slice(0, 6))}
+            inputMode={useBackupCode ? "text" : "numeric"} autoComplete="one-time-code" autoFocus spellCheck={false}
+            placeholder={useBackupCode ? "ABCD1234" : "123456"} className="font-mono text-lg tracking-widest"
+          />
+          {error && <Notice tone="error">{error}</Notice>}
+          <button type="submit" className={`${btnPrimary} w-full`} disabled={loading || totpCode.length !== codeLength} aria-busy={loading}>
+            {loading ? "Verifying…" : "Verify"}
+          </button>
+          <div className="flex flex-col gap-1 text-sm">
+            <button type="button" className={`${linkClass} min-h-11 text-left`} onClick={() => { setUseBackupCode(!useBackupCode); setTotpCode(""); setError(""); }}>
+              {useBackupCode ? "Use the authenticator app instead" : "Use a backup code instead"}
+            </button>
+            <button
+              type="button" className="min-h-11 text-left text-muted-foreground hover:text-foreground"
+              onClick={() => { setRequires2fa(false); setSessionId(""); setTotpCode(""); setUseBackupCode(false); setError(""); }}
+            >
+              Back to sign in
+            </button>
+          </div>
+        </form>
+      </AuthLayout>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-10 pointer-events-none" />
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10 w-full max-w-lg">
-        <div className="glass-card rounded-2xl shadow-glow-card overflow-hidden">
-          {/* Header with gradient */}
-          <div className="p-10 pb-6 text-center relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <img src={logo} alt="" className="h-12 w-12 object-contain" />
-                <span className="text-2xl font-bold text-white tracking-tight">{settings?.site_name || "RXShare"}</span>
-              </div>
-              <h2 className="text-xl font-bold text-white">Welcome back</h2>
-              <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
-            </div>
-          </div>
-          {/* Form */}
-          <div className="px-10 pb-10">
-            {!requires2fa ? (
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Email</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                    className="block w-full px-4 py-3.5 border border-white/10 rounded-xl bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-                    placeholder="you@example.com" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Password</label>
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-                    className="block w-full px-4 py-3.5 border border-white/10 rounded-xl bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-                    placeholder="••••••••" />
-                </div>
-                {captchaEnabled && (
-                  <Captcha provider={settings.captcha_provider} siteKey={settings.captcha_site_key} onVerify={onVerify} onExpire={onExpire} />
-                )}
-                <button type="submit" disabled={loading || (captchaEnabled && !captchaToken)}
-                  className="w-full bg-primary hover:bg-[var(--primary-hover)] text-white py-3.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden text-base">
-                  <span className="relative z-10">{loading ? "Signing in..." : "Sign In"}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 translate-x-[-150%] animate-[shimmer_3s_infinite]" />
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerify2fa} className="space-y-5">
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                    <span className="text-3xl">🔐</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">Two-Factor Authentication</h3>
-                  <p className="text-sm text-gray-500">Enter the {useBackupCode ? "backup code" : "6-digit code"} from your authenticator app</p>
-                </div>
-                
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={totpCode}
-                    onChange={(e) => setTotpCode(useBackupCode ? e.target.value.toUpperCase().slice(0, 8) : e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    required
-                    placeholder={useBackupCode ? "ABCD1234" : "000000"}
-                    className="block w-full px-4 py-3.5 border border-white/10 rounded-xl bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-2xl text-center tracking-widest font-mono transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-                    maxLength={useBackupCode ? 8 : 6}
-                    autoFocus
-                  />
-                </div>
-
-                <button type="submit" disabled={loading || (useBackupCode ? totpCode.length !== 8 : totpCode.length !== 6)}
-                  className="w-full bg-primary hover:bg-[var(--primary-hover)] text-white py-3.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden text-base">
-                  <span className="relative z-10">{loading ? "Verifying..." : "Verify"}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 translate-x-[-150%] animate-[shimmer_3s_infinite]" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setUseBackupCode(!useBackupCode); setTotpCode(""); }}
-                  className="w-full text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  {useBackupCode ? "Use authenticator code" : "Use backup code"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setRequires2fa(false); setSessionId(""); setTotpCode(""); setUseBackupCode(false); }}
-                  className="w-full text-sm text-gray-500 hover:text-gray-400 transition-colors"
-                >
-                  ← Back to login
-                </button>
-              </form>
-            )}
-            {settings?.allow_registration === 1 && !requires2fa && (
-              <p className="text-center text-sm text-gray-500 mt-6">
-                Don't have an account?{" "}
-                <Link to="/auth/sign-up" className="text-primary hover:text-[var(--primary-hover)] font-medium transition-colors">Sign up</Link>
-              </p>
-            )}
-            {!requires2fa && (
-              <p className="text-center text-sm text-gray-500 mt-3">
-                <Link to="/auth/forgot-password" className="text-gray-400 hover:text-white transition-colors">Forgot your password?</Link>
-              </p>
-            )}
-          </div>
+    <AuthLayout
+      siteName={siteName} logo={logo}
+      title="Sign in"
+      description={`Use your ${siteName} account.`}
+      footer={
+        settings?.allow_registration === 1 ? (
+          <p>No account yet? <Link to="/auth/sign-up" className={linkClass}>Create one</Link></p>
+        ) : undefined
+      }
+    >
+      <form onSubmit={handleLogin} noValidate className="space-y-5">
+        {params.get("registered") && <Notice tone="info">Account created. Sign in to continue.</Notice>}
+        {params.get("reset") && <Notice tone="info">Password changed. Sign in with the new one.</Notice>}
+        <TextField
+          fieldId="f-email" label="Email" type="email" value={email} onChange={setEmail} error={fieldErrors.email}
+          placeholder="you@example.com" autoComplete="username" autoFocus
+        />
+        <div className="space-y-2">
+          <PasswordField
+            fieldId="f-password" label="Password" value={password} onChange={setPassword} error={fieldErrors.password}
+            autoComplete="current-password"
+          />
+          <p className="text-sm"><Link to="/auth/forgot-password" className={linkClass}>Forgot your password?</Link></p>
         </div>
-      </div>
-    </div>
+        {captchaEnabled && (
+          <div>
+            <Captcha provider={settings!.captcha_provider as any} siteKey={settings!.captcha_site_key!} onVerify={onVerify} onExpire={onExpire} />
+            {!captchaToken && <p className="mt-1 text-center text-xs text-muted-foreground">Complete the check to sign in.</p>}
+          </div>
+        )}
+        {error && <Notice tone="error" title="Could not sign in">{error}</Notice>}
+        <button type="submit" className={`${btnPrimary} w-full`} disabled={loading || (captchaEnabled && !captchaToken)} aria-busy={loading}>
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

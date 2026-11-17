@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate, Link, useLoaderData } from "react-router";
-import { useToast } from "~/components/ui/use-toast";
 import { getCsrfToken } from "~/lib/csrf";
 import { Captcha, useCaptcha } from "~/components/Captcha";
-
-const DEFAULT_LOGO = "https://cdn.694206767.xyz/rexsystems/logo-transparent.svg";
+import { AuthLayout, authLogo } from "~/components/AuthLayout";
+import { btnPrimary, linkClass, Notice, PasswordField, TextField } from "~/components/form";
 
 export async function loader({ request }: { request: Request }) {
   const { queryOne, isFirstRun } = await import("~/.server/db");
@@ -23,120 +22,102 @@ export async function loader({ request }: { request: Request }) {
   }
 }
 
+export const meta = ({ data }: { data?: { settings?: { site_name?: string | null } | null } }) => [
+  { title: `Create account | ${data?.settings?.site_name || "RXShare"}` },
+];
+
+const USERNAME_RE = /^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function SignUp() {
   const { settings } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [attempted, setAttempted] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Read invite code from URL param
   const inviteCode = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("invite") || "" : "";
 
-  // CAPTCHA
-  const captchaEnabled = settings?.captcha_provider && settings.captcha_provider !== "none" && settings.captcha_site_key && settings.captcha_on_signup;
+  const captchaEnabled = !!(settings?.captcha_provider && settings.captcha_provider !== "none" && settings.captcha_site_key && settings.captcha_on_signup);
   const { captchaToken, onVerify, onExpire } = useCaptcha();
 
-  const logo = settings?.logo_url?.trim() || DEFAULT_LOGO;
+  const siteName = settings?.site_name || "RXShare";
+  const logo = authLogo(settings);
+
+  const errors: Record<string, string> = {};
+  if (attempted) {
+    if (!EMAIL_RE.test(email.trim())) errors.email = "Enter a valid email address.";
+    if (!USERNAME_RE.test(username)) errors.username = "3 to 30 characters: a-z, 0-9, dot, underscore or hyphen. No dot, underscore or hyphen at either end.";
+    if (password.length < 8) errors.password = "Use at least 8 characters.";
+    else if (password.length > 128) errors.password = "Use 128 characters or fewer.";
+    if (confirmPassword !== password) errors.confirmPassword = "The passwords do not match.";
+  }
 
   if (settings && !settings.allow_registration && !inviteCode) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="glass-card rounded-2xl p-8 w-full max-w-md text-center shadow-glow-card">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <img src={logo} alt="" className="h-12 w-12 object-contain" />
-            <span className="text-2xl font-bold text-white">{settings?.site_name || "RXShare"}</span>
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Registration Closed</h2>
-          <p className="text-gray-500 text-sm">Registration is currently disabled by the administrator.</p>
-        </div>
-      </div>
+      <AuthLayout
+        siteName={siteName} logo={logo} title="Registration is closed"
+        description="New accounts are turned off on this instance. You need an invite link to join."
+        footer={<p><Link to="/auth/login" className={linkClass}>Back to sign in</Link></p>}
+      />
     );
   }
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) { toast({ title: "Passwords don't match", variant: "destructive" }); return; }
-    if (password.length < 8) { toast({ title: "Password must be at least 8 characters", variant: "destructive" }); return; }
-    const usernameRegex = /^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/;
-    if (!usernameRegex.test(username)) { toast({ title: "Invalid username", description: "3-30 chars, lowercase alphanumeric with . _ -", variant: "destructive" }); return; }
+    setAttempted(true);
+    const bad =
+      !EMAIL_RE.test(email.trim()) ? "f-email" :
+      !USERNAME_RE.test(username) ? "f-username" :
+      password.length < 8 || password.length > 128 ? "f-password" :
+      confirmPassword !== password ? "f-confirm" : "";
+    if (bad) { requestAnimationFrame(() => document.getElementById(bad)?.focus()); return; }
+    setError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST", headers: { "Content-Type": "application/json", ...(getCsrfToken() ? { "X-CSRF-Token": getCsrfToken()! } : {}) },
         body: JSON.stringify({ email, password, username, captchaToken, ...(inviteCode ? { invite_code: inviteCode } : {}) }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Sign up failed");
-      toast({ title: "Account created!", description: "You can now sign in." });
-      navigate("/auth/login");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Sign-up failed.");
+      navigate("/auth/login?registered=1");
     } catch (err: any) {
-      toast({ title: "Sign up failed", description: err.message, variant: "destructive" });
+      setError(err.message);
     } finally { setLoading(false); }
   };
 
-  const inputCls = "block w-full px-4 py-3.5 border border-white/10 rounded-xl bg-[#0a0a0a] text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-10 pointer-events-none" />
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10 w-full max-w-lg">
-        <div className="glass-card rounded-2xl shadow-glow-card overflow-hidden">
-          <div className="p-10 pb-6 text-center relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <img src={logo} alt="" className="h-12 w-12 object-contain" />
-                <span className="text-2xl font-bold text-white tracking-tight">{settings?.site_name || "RXShare"}</span>
-              </div>
-              <h2 className="text-xl font-bold text-white">Create Account</h2>
-              <p className="text-gray-500 text-sm mt-1">Sign up to start sharing files</p>
-            </div>
+    <AuthLayout
+      siteName={siteName} logo={logo} title="Create an account"
+      description={`Join ${siteName} to upload and share files.`}
+      footer={<p>Already have an account? <Link to="/auth/login" className={linkClass}>Sign in</Link></p>}
+    >
+      <form onSubmit={handleSignUp} noValidate className="space-y-5">
+        {inviteCode && <Notice tone="info">Invite link applied.</Notice>}
+        <TextField fieldId="f-email" label="Email" type="email" value={email} onChange={setEmail} error={errors.email} placeholder="you@example.com" autoComplete="email" autoFocus />
+        <TextField
+          fieldId="f-username" label="Username" value={username} onChange={(v) => setUsername(v.toLowerCase())} error={errors.username}
+          placeholder="Your username" autoComplete="username" autoCapitalize="none" spellCheck={false}
+          hint="3 to 30 characters: a-z, 0-9, dot, underscore, hyphen."
+        />
+        <PasswordField fieldId="f-password" label="Password" value={password} onChange={setPassword} error={errors.password} hint="At least 8 characters." autoComplete="new-password" />
+        <PasswordField fieldId="f-confirm" label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} error={errors.confirmPassword} autoComplete="new-password" />
+        {captchaEnabled && (
+          <div>
+            <Captcha provider={settings!.captcha_provider as any} siteKey={settings!.captcha_site_key!} onVerify={onVerify} onExpire={onExpire} />
+            {!captchaToken && <p className="mt-1 text-center text-xs text-muted-foreground">Complete the check to create your account.</p>}
           </div>
-          <div className="px-10 pb-10">
-            <form onSubmit={handleSignUp} className="space-y-4">
-              {inviteCode && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
-                  <span className="material-symbols-rounded text-lg">mail</span>
-                  Invite code applied
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Email</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} placeholder="you@example.com" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Username</label>
-                <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required className={inputCls} placeholder="cooluser" />
-                <p className="text-xs text-gray-600">3-30 chars, lowercase, a-z 0-9 . _ -</p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Password</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputCls} placeholder="Min 6 characters" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Confirm Password</label>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className={inputCls} />
-              </div>
-              {captchaEnabled && (
-                <Captcha provider={settings.captcha_provider} siteKey={settings.captcha_site_key} onVerify={onVerify} onExpire={onExpire} />
-              )}
-              <button type="submit" disabled={loading || (captchaEnabled && !captchaToken)}
-                className="w-full bg-primary hover:bg-[var(--primary-hover)] text-white py-3.5 rounded-xl font-bold shadow-glow-primary transition-all hover:scale-[1.02] disabled:opacity-50 relative overflow-hidden text-base">
-                <span className="relative z-10">{loading ? "Creating..." : "Sign Up"}</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 translate-x-[-150%] animate-[shimmer_3s_infinite]" />
-              </button>
-            </form>
-            <p className="text-center text-sm text-gray-500 mt-6">
-              Already have an account?{" "}
-              <Link to="/auth/login" className="text-primary hover:text-[var(--primary-hover)] font-medium transition-colors">Sign in</Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+        )}
+        {error && <Notice tone="error" title="Could not create the account">{error}</Notice>}
+        <button type="submit" className={`${btnPrimary} w-full`} disabled={loading || (captchaEnabled && !captchaToken)} aria-busy={loading}>
+          {loading ? "Creating…" : "Create account"}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

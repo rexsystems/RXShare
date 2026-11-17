@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Runtime is Node 22 LTS, so type definitions stay on the matching major
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       radix-ui:
         patterns: ["@radix-ui/*"]
@@ -14,6 +18,10 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    ignore:
+      # Node image changes are done by hand after checking native modules (sharp, better-sqlite3)
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

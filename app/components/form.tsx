@@ -190,3 +190,19 @@ export function CheckField({ label, description, checked, onChange }: CheckField
     </label>
   );
 }
+
+/** Inline message for a form. Errors use role="alert" so screen readers announce them; info uses role="status". */
+export function Notice({ tone, title, children }: { tone: "error" | "info"; title?: string; children?: ReactNode }) {
+  return (
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={cn(
+        "rounded-md border p-3 text-sm",
+        tone === "error" ? "border-red-400/60 text-red-300" : "border-[var(--control-border)] text-foreground"
+      )}
+    >
+      {title && <p className="font-medium">{title}</p>}
+      {children && <p className={title ? "mt-0.5" : undefined}>{children}</p>}
+    </div>
+  );
+}
