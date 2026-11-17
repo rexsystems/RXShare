@@ -2,6 +2,7 @@ import { useLoaderData } from "react-router";
 import { query, queryOne } from "~/.server/db";
 import { formatFileSize, getMimeCategory } from "~/lib/utils-format";
 import { PublicFileList } from "~/components/PublicFileList";
+import { AudioPlayer } from "~/components/AudioPlayer";
 import { btnPrimary } from "~/components/form";
 
 export async function loader({ params }: { params: { username: string; fileName?: string } }) {
@@ -49,7 +50,7 @@ export default function UserViewer() {
           <div className="overflow-hidden rounded-lg border border-border bg-card">
             {category === "image" && <img src={fileUrl} alt={upload.original_name} className="mx-auto max-h-[80vh] max-w-full object-contain" />}
             {category === "video" && <video src={fileUrl} controls className="mx-auto max-h-[80vh] max-w-full" />}
-            {category === "audio" && <div className="p-8"><audio src={fileUrl} controls className="w-full" /></div>}
+            {category === "audio" && <div className="p-6"><AudioPlayer src={fileUrl} title={upload.original_name} /></div>}
             {!["image", "video", "audio"].includes(category) && (
               <p className="px-6 py-14 text-center text-sm text-muted-foreground">No preview for this file type. Use Download.</p>
             )}

@@ -10,6 +10,7 @@ import { btnPrimary, btnSecondary, controlClass, PasswordField, SelectField, Tex
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { AudioPlayer } from "~/components/AudioPlayer";
 import { getCsrfToken } from "~/lib/csrf";
 import { isAdmin } from "~/.server/auth";
 import { getFeatureFlagsMap } from "~/.server/features";
@@ -611,7 +612,7 @@ function FilePreview({ upload }: { upload: any }) {
   const category = getMimeCategory(upload.mime_type);
   if (category === "image") return <img src={url} alt={upload.original_name} className="mx-auto max-h-[60vh] max-w-full rounded object-contain" />;
   if (category === "video") return <video src={url} controls className="mx-auto max-h-[60vh] max-w-full rounded" />;
-  if (category === "audio") return <audio src={url} controls className="w-full" />;
+  if (category === "audio") return <AudioPlayer src={url} title={upload.original_name} />;
   if (category === "pdf") return <iframe src={url} title={upload.original_name} className="h-[60vh] w-full rounded border border-border" />;
   return <p className="py-10 text-center text-sm text-muted-foreground">No preview for this file type. Use Download or Open page.</p>;
 }

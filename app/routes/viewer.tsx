@@ -4,6 +4,7 @@ import { queryOne, execute } from "~/.server/db";
 import { getSession } from "~/.server/session";
 import { getBaseUrl } from "~/.server/base-url";
 import { getMimeCategory, formatFileSize } from "~/lib/utils-format";
+import { AudioPlayer } from "~/components/AudioPlayer";
 import { btnPrimary, btnSecondary, linkClass, PasswordField } from "~/components/form";
 import { codeToHtml } from "shiki";
 import QRCode from "qrcode";
@@ -136,7 +137,7 @@ export default function Viewer() {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 basis-full sm:basis-0 sm:flex-1">
             <h1 className="truncate text-lg font-semibold">{upload.original_name}</h1>
             <p className="text-sm text-muted-foreground">
               {formatFileSize(upload.file_size)} · {upload.views} views · {upload.downloads || 0} downloads
@@ -162,7 +163,7 @@ export default function Viewer() {
         <div className="w-full max-w-7xl overflow-hidden rounded-lg border border-border bg-card">
           {category === "image" && <img src={fileUrl} alt={upload.original_name} className="mx-auto h-auto max-h-[calc(100vh-10rem)] w-auto max-w-full object-contain" />}
           {category === "video" && <video src={fileUrl} controls autoPlay className="mx-auto max-h-[calc(100vh-10rem)] w-full" />}
-          {category === "audio" && <div className="p-8"><audio src={fileUrl} controls className="w-full" /></div>}
+          {category === "audio" && <div className="p-6"><AudioPlayer src={fileUrl} title={upload.original_name} /></div>}
           {category === "pdf" && <iframe src={fileUrl} title={upload.original_name} className="h-[calc(100vh-10rem)] w-full" />}
           {(category === "text" || category === "code") && <TextViewer url={fileUrl} fileName={upload.original_name} />}
           {category === "other" && (
