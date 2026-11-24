@@ -46,7 +46,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^8.5.1",
-    "recharts": "^2.15.4",
+    "recharts": "^3.11.0",
     "sharp": "^0.35.5",
     "shiki": "^3.22.0",
     "sonner": "^1.7.4",
